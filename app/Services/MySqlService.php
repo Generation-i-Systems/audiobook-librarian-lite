@@ -6,13 +6,6 @@ namespace App\Services;
 
 use App\Contracts\DocumentStoreServiceInterface;
 use App\Contracts\DocumentStatsServiceInterface;
-use App\Models\Author;
-use App\Models\Badge;
-use App\Models\Book;
-use App\Models\BookProgress;
-use App\Models\Genre;
-use App\Models\Narrator;
-use App\Models\Series;
 use App\Models\User;
 use App\Traits\HandlesLibraryJson;
 use Illuminate\Support\Carbon;

@@ -2,10 +2,6 @@
 
 namespace App\Providers;
 
-use App\Models\Book;
-use App\Observers\BookObserver;
-use App\Services\AudibleApiService;
-// Firestore support removed
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -17,20 +13,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(AudibleApiService::class, function ($app) {
-            return new AudibleApiService(config('services.audible', []));
-        });
-        // DocumentStoreServiceInterface binding is now handled by DocumentStoreServiceProvider
-        // to avoid conflicts and ensure proper driver selection based on documentstore.driver config
-
-        $this->app->singleton(\App\Services\AI\AIAssistantService::class, function ($app) {
-            $provider = config('services.ai.default_provider', 'gemini');
-            $model = config('services.ai.default_model', 'gemini-2.5-flash-lite');
-
-            return new \App\Services\AI\AIAssistantService($provider, $model);
-        });
-
-        // Firestore support removed
     }
 
     /**
@@ -49,17 +31,6 @@ class AppServiceProvider extends ServiceProvider
                 );
             }
         }
-
-        // Register Book observer for automatic librarian.json updates
-        Book::observe(BookObserver::class);
-
-        // Register custom Documentstore user provider
-        Auth::provider('documentstore', function ($app, array $config) {
-            return new \App\Auth\DocumentUserProvider(
-                $app->make(\App\Contracts\DocumentStoreServiceInterface::class)
-            );
-        });
-
 
         // Dynamically set the application's base URL based on the incoming request.
         // This allows the app to respond correctly via multiple domains

@@ -109,10 +109,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'device.identify' => \App\Http\Middleware\IdentifyDevice::class,
         ]);
     })
-    ->withProviders([
-        \App\Providers\BookParserServiceProvider::class,
-        \App\Providers\GalleryServiceProvider::class,
-    ])
+    ->withProviders([])
     ->withExceptions(function (Exceptions $exceptions): void {
         // Ensure API routes return JSON errors
         $exceptions->render(function (\Throwable $e, $request) {
