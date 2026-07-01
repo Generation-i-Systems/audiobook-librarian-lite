@@ -13,8 +13,8 @@ return new class () extends Migration {
             $table->string('period_type'); // day, week, month, year
             $table->string('metric');      // total_hours, genre_hours, playlist_hours, fiction_hours, nonfiction_hours
             $table->integer('target_minutes');
-            $table->foreignId('genre_id')->nullable()->nullOnDelete()->constrained('genres');
-            $table->foreignId('playlist_id')->nullable()->nullOnDelete()->constrained('playlists');
+            $table->unsignedBigInteger('genre_id')->nullable();
+            $table->unsignedBigInteger('playlist_id')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->index(['user_id', 'is_active']);

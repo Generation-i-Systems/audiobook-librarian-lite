@@ -1,0 +1,13 @@
+services:
+  lite:
+    image: ghcr.io/generation-i-systems/audiobook-librarian-lite:latest
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/storage
+    environment:
+      APP_KEY: ""
+      APP_ENV: production
+      LITE_REGISTRATION_OPEN: "true"
+      LITE_OTP_ENABLED: "false"
