@@ -1,0 +1,33 @@
+.pagination .page-link img {
+    max-width: 1.5em;
+    width: auto;
+    height: auto;
+    display: inline;
+}
+
+.pagination .page-link svg,
+.pagination svg.w-5,
+.pagination svg.h-5 {
+    width: 1em !important;
+    height: 1em !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 1.5em !important;
+    max-height: 1.5em !important;
+    display: inline !important;
+    vertical-align: middle;
+}
+
+.pagination .page-link,
+.pagination .page-item {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+}
+
+.pagination {
+    width: auto !important;
+    max-width: 100%;
+    justify-content: center;
+}

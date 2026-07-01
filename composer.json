@@ -1,0 +1,161 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "laravel/laravel",
+    "type": "project",
+    "description": "The skeleton application for the Laravel framework.",
+    "keywords": [
+        "laravel",
+        "framework"
+    ],
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "doctrine/dbal": "^4.3",
+        "google/apiclient": "^2.18",
+        "guzzlehttp/guzzle": "^7.9",
+        "intervention/image": "^3.11",
+        "james-heinrich/getid3": "^1.9",
+        "laravel/framework": "^13.0",
+        "laravel/horizon": "^5.41",
+        "laravel/pulse": "^1.7",
+        "laravel/ui": "^4.6",
+        "league/flysystem-aws-s3-v3": "^3.30",
+        "mozex/anthropic-php": "^1.1",
+        "neuron-core/neuron-ai": "^3.0",
+        "neuron-core/neuron-laravel": "^1.0",
+        "openai-php/client": "^0.14.0",
+        "predis/predis": "^3.3",
+        "soloterm/screen": "^1.1",
+        "spatie/laravel-data": "^4.21"
+    },
+    "require-dev": {
+        "ext-xdebug": "*",
+        "barryvdh/laravel-debugbar": "^4.2",
+        "barryvdh/laravel-ide-helper": "^3.6",
+        "brianium/paratest": "^7.20",
+        "fakerphp/faker": "^1.23",
+        "larastan/larastan": "^3.9",
+        "laravel/dusk": "^8.3",
+        "laravel/pail": "^1.2.2",
+        "laravel/pint": "^1.22",
+        "laravel/sail": "^1.41",
+        "laravel/sanctum": "^4.2",
+        "laravel/socialite": "^5.23",
+        "laravel/tinker": "^3.0",
+        "mikey179/vfsstream": "^1.6",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^8.8",
+        "orchestra/testbench": "^11.0",
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-mockery": "^2.0",
+        "phpunit/phpunit": "^12",
+        "squizlabs/php_codesniffer": "^3.13"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/",
+            "Tests\\Api\\": "tests/Api/",
+            "Tests\\Web\\": "tests/Web/",
+            "Tests\\Cli\\": "tests/Cli/",
+            "Tests\\Import\\": "tests/Import/",
+            "Tests\\Import\\Feature\\": "tests/Import/Feature/",
+            "Tests\\Import\\Feature\\Admin\\": "tests/Import/Feature/",
+            "Tests\\Import\\Feature\\Commands\\": "tests/Import/Feature/",
+            "Tests\\Import\\Feature\\Services\\": "tests/Import/Feature/",
+            "Tests\\Import\\Unit\\": "tests/Import/Unit/",
+            "Tests\\Import\\Unit\\Commands\\": "tests/Import/Unit/",
+            "Tests\\Import\\Unit\\Controllers\\Admin\\": "tests/Import/Unit/",
+            "Tests\\Import\\Unit\\Services\\": "tests/Import/Unit/",
+            "Tests\\Import\\Unit\\Traits\\": "tests/Import/Unit/",
+            "Tests\\Core\\": "tests/Core/",
+            "Tests\\Integration\\": "tests-integration/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi",
+            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
+            "@php artisan migrate --graceful --ansi"
+        ],
+        "post-migrations": [
+            "@php artisan app:create-admin-user"
+        ],
+        "dev": [
+            "Composer\\Config::disableProcessTimeout",
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite"
+        ],
+        "test": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test"
+        ],
+        "test:api": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Api"
+        ],
+        "test:web": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Web"
+        ],
+        "test:cli": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Cli"
+        ],
+        "test:import": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Import"
+        ],
+        "test:core": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Core"
+        ],
+        "test:import-coverage": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test --filter=MetadataExtractionTest --coverage",
+            "@php artisan test --filter=AuthorNormalizationTest --coverage",
+            "@php artisan test --filter=EnrichmentMergeTest --coverage"
+        ],
+        "test:external-metadata": [
+            "@php artisan config:clear --ansi",
+            "./vendor/bin/phpunit -c phpunit.external-metadata.xml"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        },
+        "audit": {
+            "abandoned": "ignore",
+            "ignore": {
+                "PKSA-y2cr-5h3j-g3ys": "firebase/php-jwt CVE-2025-45769 (low): used only for Apple ID token RS256 verification; weak encryption CVE affects signing, not verification. Constrained to ^6.0 by google/apiclient and google/auth."
+            }
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

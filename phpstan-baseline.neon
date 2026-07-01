@@ -1,0 +1,1369 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Anonymous function should return array\{category\: \(int\|string\), category_name\: \(int\|string\), badges\: Illuminate\\Support\\Collection\<int, array\{id\: int, key\: string, name\: string, description\: string, icon\: string\|null, image_url\: string\|null, tier\: string, points\: int, \.\.\.\}\>, total_in_category\: int\<0, max\>, earned_in_category\: int\<0, max\>\} but returns array\{category\: \(int\|string\), category_name\: \(int\|string\), badges\: Illuminate\\Support\\Collection\<int, array\{id\: int, key\: string, name\: string, description\: string, icon\: string\|null, image_url\: string\|null, tier\: string, points\: int, \.\.\.\}\>, total_in_category\: int\<0, max\>, earned_in_category\: int\<0, max\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Api/BadgeController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Badge\>\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Badge\>, int\|string\)\: array\{category\: int\|string, category_name\: int\|string, badges\: Illuminate\\Support\\Collection\<int, array\{id\: int, key\: string, name\: string, description\: string, icon\: string\|null, image_url\: string\|null, tier\: string, points\: int, earned\: bool, earned_at\: string\|null, times_earned\: int\}\>, total_in_category\: int\<0, max\>, earned_in_category\: int\<0, max\>\}, Closure\(mixed, mixed\)\: array\{category\: int\|string, category_name\: int\|string, badges\: Illuminate\\Support\\Collection\<int, array\{id\: int, key\: string, name\: string, description\: string, icon\: string\|null, image_url\: string\|null, tier\: string, points\: int, earned\: bool, earned_at\: string\|null, times_earned\: int\}\>, total_in_category\: int\<0, max\>, earned_in_category\: int\<0, max\>\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/BadgeController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>tier_level" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/BadgeController.php
+
+		-
+			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
+			identifier: greater.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/Api/BookApiController.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<array\{id\: mixed, name\: mixed\}\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Http/Controllers/Api/BookApiController.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between numeric\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/Api/BookApiController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\SkinController\:\:download\(\) should return Illuminate\\Http\\Response but returns Symfony\\Component\\HttpFoundation\\BinaryFileResponse\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Api/SkinController.php
+
+		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/SkinWebController.php
+
+		-
+			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/ThemeWebController.php
+
+		-
+			message: '#^Call to function is_object\(\) with App\\Auth\\DocumentstoreUser will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Http/Middleware/ApiAuth.php
+
+		-
+			message: '#^Variable \$documentStore in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
+			count: 1
+			path: app/Jobs/CreateImportJobsForDirectory.php
+
+		-
+			message: '#^Offset ''title'' on non\-empty\-array on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Jobs/ImportBookFromDirectoryJob.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Monolog\\Handler\\RotatingFileHandler and ''setFilenameFormat'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Logging/CustomizeDailyLogName.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/AudioSession.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Audit.php
+
+		-
+			message: '#^PHPDoc tag @property\-read for property App\\Models\\Audit\:\:\$auditable contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Audit.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Badge.php
+
+		-
+			message: '#^PHPDoc type array of property App\\Models\\Book\:\:\$casts is not covariant with PHPDoc type array\<string, string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$casts\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/Book.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/BookProgress.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Bookmark.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Chapter.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/DiscoveredBook.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/ExternalRead.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/FavoriteAuthor.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Genre.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Job.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/LibraryRepairIssue.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Message.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Models/Narrator.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''Normalizer'' and ''normalize'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Models/Narrator.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Narrator.php
+
+		-
+			message: '#^PHPDoc type array of property App\\Models\\Publisher\:\:\$casts is not covariant with PHPDoc type array\<string, string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$casts\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/Publisher.php
+
+		-
+			message: '#^PHPDoc type array of property App\\Models\\Publisher\:\:\$fillable is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$fillable\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/Publisher.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/ReadingSession.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Skin.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/SkinRating.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/SystemSetting.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 2
+			path: app/Models/SystemSetting.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/Theme.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/ThemeRating.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model&object\{pivot\: Illuminate\\Database\\Eloquent\\Relations\\Pivot\}\:\:\$cover_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^PHPDoc type array\<int, string\> of property App\\Models\\User\:\:\$fillable is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$fillable\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^PHPDoc type array\<int, string\> of property App\\Models\\User\:\:\$hidden is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$hidden\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/UserBookStatus.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/UserRecommendation.php
+
+		-
+			message: '#^PHPDoc tag @mixin contains unknown class Eloquent\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/UserStatistic.php
+
+		-
+			message: '#^Called ''env'' outside of the config directory which returns null when the config is cached, use ''config''\.$#'
+			identifier: larastan.noEnvCallsOutsideOfConfig
+			count: 1
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Illuminate\\Database\\Eloquent\\Model and ''touch'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Relations/TouchesParentBelongsToMany.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: app/Relations/TouchesParentBelongsToMany.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$authors\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AI/AIAssistantService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$directory_path\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/AI/AIAssistantService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Services/AI/AIAssistantService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$series\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AI/AIAssistantService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/AI/AIAssistantService.php
+
+		-
+			message: '#^Parameter \#1 \$array of function array_values contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 2
+			path: app/Services/AI/AIAssistantService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>series_number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/AI/AIAssistantService.php
+
+		-
+			message: '#^Call to static method messages\(\) on an unknown class Mozex\\Anthropic\\Facades\\Anthropic\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Services/AI/Providers/ClaudeProvider.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Book\:\:\$book_ids\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Book\:\:\$count\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$authors\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$directory_path\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$duration\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$genres\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$narrators\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Relations\\Pivot\:\:\$series_number\.$#'
+			identifier: property.notFound
+			count: 5
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Anonymous function has an unused use \$series\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Call to an undefined method App\\Services\\AIBookProcessor\:\:processBook\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<''authors_without…''\|''genres_without_books''\|''no_author''\|''no_description''\|''no_genre''\|''series_without_books''\|int\<0, max\>, array\<mixed\>\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Series\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 3
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:sortBy\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Parameter \#2 \$value of method SimpleXMLElement\:\:addChild\(\) expects string\|null, float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>series_number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/AI/ToolExecutor.php
+
+		-
+			message: '#^Call to function is_string\(\) with OpenAI\\Responses\\Audio\\TranscriptionResponse will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Services/AIBookProcessor.php
+
+		-
+			message: '#^Call to static method messages\(\) on an unknown class Mozex\\Anthropic\\Facades\\Anthropic\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Services/AIBookProcessor.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/AIQueryService.php
+
+		-
+			message: '#^Call to an undefined method App\\Services\\AudibleApiService\:\:searchAudiobooks\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Services/AudibleApiService.php
+
+		-
+			message: '#^Offset ''BrowseNodeId'' on non\-empty\-array on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/AudibleApiService.php
+
+		-
+			message: '#^Variable \$processedItems in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: app/Services/AudibleApiService.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Services/AudibleService.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Psr\\Log\\LoggerInterface and ''debug'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Services/AudibleService.php
+
+		-
+			message: '#^Cannot unset offset ''asin'' on array\{source\: string, title\?\: mixed, id\: mixed\}\.$#'
+			identifier: unset.offset
+			count: 1
+			path: app/Services/AudibleService.php
+
+		-
+			message: '#^Cannot unset offset ''audibleCoverImageUrl'' on array\{source\: string, title\?\: mixed, id\?\: mixed, coverImageUrl\: mixed\}\.$#'
+			identifier: unset.offset
+			count: 1
+			path: app/Services/AudibleService.php
+
+		-
+			message: '#^Cannot unset offset ''image_url'' on array\{source\: string, title\?\: mixed, id\?\: mixed, coverImageUrl\: mixed\}\.$#'
+			identifier: unset.offset
+			count: 1
+			path: app/Services/AudibleService.php
+
+		-
+			message: '#^Cannot unset offset ''release_date'' on array\{source\: string, title\?\: mixed, id\?\: mixed, coverImageUrl\: mixed, publishedYear\: string\}\.$#'
+			identifier: unset.offset
+			count: 1
+			path: app/Services/AudibleService.php
+
+		-
+			message: '#^Offset ''description'' on array\{source\: string, title\?\: mixed, id\?\: mixed, coverImageUrl\: mixed, publishedYear\?\: string, author\: list\<mixed\>, authors\: list\<array\{author\: array\{name\: mixed, id\: mixed\}\}\>, narrators\: list\<array\{narrator\: array\{name\: mixed, id\: mixed\}\}\>, \.\.\.\} in isset\(\) does not exist\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/Services/AudibleService.php
+
+		-
+			message: '#^Variable \$audioFile on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: app/Services/AudioFileAnalyzer.php
+
+		-
+			message: '#^Call to function is_object\(\) with \*NEVER\* will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Services/AudiobookBayApiService.php
+
+		-
+			message: '#^Call to function is_object\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Services/AudiobookBayApiService.php
+
+		-
+			message: '#^Method App\\Services\\AudiobookBayApiService\:\:flattenToString\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Services/AudiobookBayApiService.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/AudiobookBayApiService.php
+
+		-
+			message: '#^Static method App\\Services\\AudiobookBayApiService\:\:extractFirstName\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Services/AudiobookBayApiService.php
+
+		-
+			message: '#^Static method App\\Services\\AudiobookBayApiService\:\:extractLastName\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Services/AudiobookBayApiService.php
+
+		-
+			message: '#^Static method App\\Services\\AudiobookBayApiService\:\:formatSearchResults\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Services/AudiobookBayApiService.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between null and null will always evaluate to false\.$#'
+			identifier: notIdentical.alwaysFalse
+			count: 1
+			path: app/Services/AudiobookBayApiService.php
+
+		-
+			message: '#^Variable \$cookies in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: app/Services/AudiobookBayApiService.php
+
+		-
+			message: '#^Call to an undefined method DOMNameSpaceNode\|DOMNode\:\:getAttribute\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Services/AudiobookBayCategoryScraperService.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Services/AudiobookBayCategoryScraperService.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Services/AudiobookBayService.php
+
+		-
+			message: '#^Property App\\Services\\AudiobookBayService\:\:\$apiService in isset\(\) is not nullable nor uninitialized\.$#'
+			identifier: isset.initializedProperty
+			count: 1
+			path: app/Services/AudiobookBayService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Filesystem\\FilesystemAdapter\:\:copyDirectory\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AutoPermissionsStorage.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Filesystem\\FilesystemAdapter\:\:moveDirectory\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Services/AutoPermissionsStorage.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ListeningStatistic\:\:\$first_listening_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/BadgeService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\ListeningStatistic\:\:\$last_listening_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/BadgeService.php
+
+		-
+			message: '#^Called ''count'' on Laravel collection, but could have been retrieved as a query\.$#'
+			identifier: larastan.noUnnecessaryCollectionCall
+			count: 1
+			path: app/Services/BadgeService.php
+
+		-
+			message: '#^Method App\\Services\\BadgeService\:\:getChapterCompletion\(\) should return int but returns float\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/BadgeService.php
+
+		-
+			message: '#^Parameter \#1 \$userId of method App\\Services\\BadgeService\:\:evaluateUserBadges\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/BadgeService.php
+
+		-
+			message: '#^Parameter \#3 \$callback of static method Illuminate\\Cache\\Repository\:\:remember\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Services/BadgeService.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Illuminate\\Filesystem\\FilesystemAdapter and ''directoryExists'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Services/BookDeletionService.php
+
+		-
+			message: '#^Call to function method_exists\(\) with Illuminate\\Filesystem\\FilesystemAdapter and ''directoryExists'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Services/BookDirectoryMoveService.php
+
+		-
+			message: '#^Method App\\Services\\BookDirectoryMoveService\:\:directoryExistsOnDisk\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Services/BookDirectoryMoveService.php
+
+		-
+			message: '#^Offset ''edition'' does not exist on array\{genre\: array, author\: array, series\?\: array, title\: string, directoryPath\: string, skipped\?\: bool, error\?\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Services/BookDirectoryParser.php
+
+		-
+			message: '#^Offset ''edition'' on array\{genre\: array, author\: array, series\?\: array, title\: string, directoryPath\: string, skipped\?\: bool, error\?\: string\} in empty\(\) does not exist\.$#'
+			identifier: empty.offset
+			count: 1
+			path: app/Services/BookDirectoryParser.php
+
+		-
+			message: '#^Offset ''edition'' on array\{genre\: array, author\: array, series\?\: array, title\: string, directoryPath\: string, skipped\?\: bool, error\?\: string\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/BookDirectoryParser.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: app/Services/BookEditPlannedActionsService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Relations\\Pivot\:\:\$series_number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Binary operation "\*" between string and 3600 results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Binary operation "\*" between string and 60 results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 2
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Binary operation "\+" between \(array\|float\|int\) and string results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
+			identifier: greater.alwaysTrue
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Comparison operation "\>" between int\<2, max\> and 1 is always true\.$#'
+			identifier: greater.alwaysTrue
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Deprecated in PHP 8\.0\: Required parameter \$googleImageService follows optional parameter \$limit\.$#'
+			identifier: parameter.requiredAfterOptional
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 6
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^If condition is always false\.$#'
+			identifier: if.alwaysFalse
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^If condition is always true\.$#'
+			identifier: if.alwaysTrue
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Offset ''dev'' on array\{0\: int, 1\: int, 2\: int, 3\: int, 4\: int, 5\: int, 6\: int, 7\: int, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Offset ''files'' on non\-empty\-array in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Offset ''skip_enrichment'' on non\-empty\-array on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Parameter \#1 \$string of function str_pad expects string, int\<1, 99\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Parameter \#2 \$mode of class RecursiveIteratorIterator constructor expects 0\|1\|2, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Parameter &\$runningTaskCount by\-ref type of method App\\Services\\BookImportService\:\:processBackgroundTasks\(\) expects int, \(float\|int\) given\.$#'
+			identifier: parameterByRef.type
+			count: 2
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Result of && is always true\.$#'
+			identifier: booleanAnd.alwaysTrue
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between int and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 2
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Variable \$file might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Variable \$number might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Variable \$taskTypes in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: app/Services/BookImportService.php
+
+		-
+			message: '#^Constructor of class App\\Services\\BookMetadataService has an unused parameter \$documentStoreService\.$#'
+			identifier: constructor.unusedParameter
+			count: 1
+			path: app/Services/BookMetadataService.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Services/BookPathService.php
+
+		-
+			message: '#^Call to an undefined method Intervention\\Image\\Interfaces\\ColorInterface\:\:blue\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Services/CoverImageAnalysisService.php
+
+		-
+			message: '#^Call to an undefined method Intervention\\Image\\Interfaces\\ColorInterface\:\:green\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Services/CoverImageAnalysisService.php
+
+		-
+			message: '#^Call to an undefined method Intervention\\Image\\Interfaces\\ColorInterface\:\:red\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Services/CoverImageAnalysisService.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/DirectoryMatchingService.php
+
+		-
+			message: '#^Variable \$results in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: app/Services/HardcoverApiService.php
+
+		-
+			message: '#^Parameter \#1 \$daysUntilExpiration of method App\\Services\\HardcoverService\:\:sendExpirationWarning\(\) expects int, float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/HardcoverService.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 2
+			path: app/Services/ImportUIService.php
+
+		-
+			message: '#^Match arm comparison between ''D'' and ''D'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 1
+			path: app/Services/ImportUIService.php
+
+		-
+			message: '#^Method App\\Services\\ImportUIService\:\:selectWithArrowKeys\(\) should return string but returns false\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/ImportUIService.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between int\<1, max\> and 0 will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Services/ImportUIService.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: app/Services/LibraryRepairService.php
+
+		-
+			message: '#^Method App\\Services\\LibraryRepairService\:\:buildAudiobookBaySearchTerms\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Services/LibraryRepairService.php
+
+		-
+			message: '#^Property App\\Services\\LibraryRepairService\:\:\$audiobookBayService is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: app/Services/LibraryRepairService.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Database\\Eloquent\\Collection\<int, App\\Models\\Author\>\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/LibraryRepairService.php
+
+		-
+			message: '#^Offset ''author'' on array\{title\: mixed, author\: array\{\}, narrator\: array\{\}, genre\: array\{\}, year\: null, publisher\: null, description\: null, series\: null, \.\.\.\} in empty\(\) always exists and is always falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: app/Services/MetadataProcessingService.php
+
+		-
+			message: '#^Offset ''genre'' on array\{title\: mixed, author\: array, narrator\: array, genre\: array\{\}, year\: null, publisher\: null, description\: null, series\: null, \.\.\.\} in empty\(\) always exists and is always falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: app/Services/MetadataProcessingService.php
+
+		-
+			message: '#^Offset ''narrator'' on array\{title\: mixed, author\: array, narrator\: array\{\}, genre\: array\{\}, year\: null, publisher\: null, description\: null, series\: null, \.\.\.\} in empty\(\) always exists and is always falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: app/Services/MetadataProcessingService.php
+
+		-
+			message: '#^Offset ''publisher'' on array\{title\: mixed, author\: array, narrator\: array, genre\: array, year\: mixed, publisher\: null, description\: null, series\: null, \.\.\.\} in empty\(\) always exists and is always falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: app/Services/MetadataProcessingService.php
+
+		-
+			message: '#^Offset ''series'' on array\{title\: mixed, author\: array, narrator\: array, genre\: array, year\: mixed, publisher\: mixed, description\: null, series\: null, \.\.\.\} in empty\(\) always exists and is always falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: app/Services/MetadataProcessingService.php
+
+		-
+			message: '#^Offset ''series_number'' on array\{title\: mixed, author\: array, narrator\: array, genre\: array, year\: mixed, publisher\: mixed, description\: null, series\: mixed, \.\.\.\} in empty\(\) always exists and is always falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: app/Services/MetadataProcessingService.php
+
+		-
+			message: '#^Offset ''year'' on array\{title\: mixed, author\: array, narrator\: array, genre\: array, year\: null, publisher\: null, description\: null, series\: null, \.\.\.\} in empty\(\) always exists and is always falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: app/Services/MetadataProcessingService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Job\:\:\$metadata\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/MySqlService.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between ''bitcoin''\|''casino''\|''crypto''\|''escort''\|''forex''\|''loan''\|''porn''\|''viagra''\|''xxx'' and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Services/NewUserRegistrationNotifier.php
+
+		-
+			message: '#^Binary operation "\*" between string and 3600 results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/Services/OpenAudibleParser.php
+
+		-
+			message: '#^Binary operation "\*" between string and 60 results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/Services/OpenAudibleParser.php
+
+		-
+			message: '#^Binary operation "\+" between \(array\|float\|int\) and string results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: app/Services/OpenAudibleParser.php
+
+		-
+			message: '#^Parameter \#2 \$needle of function str_starts_with expects string, array\<int, string\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/OptimizedBookService.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 4
+			path: app/Services/TerminalImageService.php
+
+		-
+			message: '#^Offset 0 on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/TerminalImageService.php
+
+		-
+			message: '#^Offset 1 on array\{0\: int\<0, max\>, 1\: int\<0, max\>, 2\: int, 3\: string, mime\: string, channels\?\: int, bits\?\: int\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Services/TerminalImageService.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between ''accent''\|''background''\|''primary''\|''progressActive''\|''progressInactive''\|''surface''\|''text''\|''timeText'' and ''darkModeOverride'' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Services/ThemeValidationService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Cache\\Repository\:\:flush\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Api/Feature/BaseApiTestCase.php
+
+		-
+			message: '#^Call to an undefined static method Illuminate\\Support\\Facades\\Cache\:\:fake\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: tests/Api/Feature/BaseApiTestCase.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: tests/Cli/Feature/Commands/CheckCoverImagesCommandTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertTrue\(\) with true will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 2
+			path: tests/Cli/Feature/Commands/MoveBookDirectoryCriticalTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertTrue\(\) with true will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Cli/Feature/Commands/MoveBookDirectoryMinorEdgeCasesTest.php
+
+		-
+			message: '#^Property Tests\\Cli\\Feature\\Commands\\MoveBookDirectoryTest\:\:\$documentStoreMock is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: tests/Cli/Feature/Commands/MoveBookDirectoryTest.php
+
+		-
+			message: '#^Method Tests\\Cli\\Unit\\Commands\\ImportBooksFromDownloadsLowConfidenceTestDouble\:\:info\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: tests/Cli/Unit/Commands/ImportBooksFromDownloadsLowConfidenceTest.php
+
+		-
+			message: '#^Method Tests\\Cli\\Unit\\Commands\\ImportBooksFromDownloadsLowConfidenceTestDouble\:\:line\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: tests/Cli/Unit/Commands/ImportBooksFromDownloadsLowConfidenceTest.php
+
+		-
+			message: '#^Method Tests\\Cli\\Unit\\Commands\\ImportBooksFromDownloadsLowConfidenceTestDouble\:\:warn\(\) with return type void returns null but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: tests/Cli/Unit/Commands/ImportBooksFromDownloadsLowConfidenceTest.php
+
+		-
+			message: '#^Method Tests\\Cli\\Unit\\Commands\\ImportBooksFromDownloadsM4bTagsSkipAudioAnalysisTestDouble\:\:option\(\) should return array\|bool\|string\|null but returns int\.$#'
+			identifier: return.type
+			count: 1
+			path: tests/Cli/Unit/Commands/ImportBooksFromDownloadsM4bTagsSkipAudioAnalysisTest.php
+
+		-
+			message: '#^PHPDoc tag @param for parameter \$aiProcessor contains unresolvable type\.$#'
+			identifier: parameter.unresolvableType
+			count: 1
+			path: tests/Cli/Unit/Commands/ImportBooksFromDownloadsM4bTagsSkipAudioAnalysisTest.php
+
+		-
+			message: '#^PHPDoc tag @var for variable \$aiProcessor contains unresolvable type\.$#'
+			identifier: varTag.unresolvableType
+			count: 1
+			path: tests/Cli/Unit/Commands/ImportBooksFromDownloadsM4bTagsSkipAudioAnalysisTest.php
+
+		-
+			message: '#^Parameter &\$aiMetadata by\-ref type of method Tests\\Cli\\Unit\\Commands\\ImportBooksFromDownloadsM4bTagsSkipAudioAnalysisTestDouble\:\:exposeHandleLowConfidenceMetadata\(\) expects array, array\|null given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: tests/Cli/Unit/Commands/ImportBooksFromDownloadsM4bTagsSkipAudioAnalysisTest.php
+
+		-
+			message: '#^Call to an undefined method App\\Console\\Commands\\ShowBookInfo\:\:wrapTextPublic\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: tests/Cli/Unit/Console/Commands/ShowBookInfoCommandTest.php
+
+		-
+			message: '#^Attribute class Tests\\Core\\Unit\\Services\\Test does not exist\.$#'
+			identifier: attribute.notFound
+			count: 2
+			path: tests/Core/Unit/Services/BookEnrichmentServiceTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsString\(\) with string will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Core/Unit/Services/BookEnrichmentServiceTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertTrue\(\) with true will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Core/Unit/Services/BookImportServiceMoveNonAudioFilesToDirectoryTest.php
+
+		-
+			message: '#^Property Tests\\Core\\Unit\\Services\\BookMetadataServiceTest\:\:\$root is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: tests/Core/Unit/Services/BookMetadataServiceTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertNotNull\(\) with int will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Core/Unit/Services/EmbeddedCoverExtractionTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertTrue\(\) with true will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Core/Unit/Services/MetadataExtractionTest.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: tests/Core/Unit/Services/MetadataExtractionTest.php
+
+		-
+			message: '#^Offset ''series'' does not exist on array\{title\: ''Lover at Last \[The…'', series_number\: 11\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: tests/Core/Unit/Services/MetadataProcessingServiceTest.php
+
+		-
+			message: '#^Offset ''series'' does not exist on array\{title\: ''Lover at Last \[The…''\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: tests/Core/Unit/Services/MetadataProcessingServiceTest.php
+
+		-
+			message: '#^Offset ''series'' does not exist on array\{title\: ''Some Novella …''\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: tests/Core/Unit/Services/MetadataProcessingServiceTest.php
+
+		-
+			message: '#^Offset ''series_number'' does not exist on array\{title\: ''Epic Series Volume…''\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: tests/Core/Unit/Services/MetadataProcessingServiceTest.php
+
+		-
+			message: '#^Offset ''series_number'' does not exist on array\{title\: ''Lover at Last \[The…''\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: tests/Core/Unit/Services/MetadataProcessingServiceTest.php
+
+		-
+			message: '#^Offset ''series_number'' does not exist on array\{title\: ''Some Novella …''\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: tests/Core/Unit/Services/MetadataProcessingServiceTest.php
+
+		-
+			message: '#^Offset ''series_number'' does not exist on array\{title\: ''The Great Adventure…''\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: tests/Core/Unit/Services/MetadataProcessingServiceTest.php
+
+		-
+			message: '#^Called ''env'' outside of the config directory which returns null when the config is cached, use ''config''\.$#'
+			identifier: larastan.noEnvCallsOutsideOfConfig
+			count: 3
+			path: tests/DuskTestCase.php
+
+		-
+			message: '#^Cannot access property \$conversation_history on array\<mixed\>\|object\.$#'
+			identifier: property.nonObject
+			count: 2
+			path: tests/Feature/Admin/AIAssistantControllerTest.php
+
+		-
+			message: '#^Cannot access property \$status on array\<mixed\>\|object\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: tests/Feature/Admin/AIAssistantControllerTest.php
+
+		-
+			message: '#^Class App\\Services\\MongoService not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: tests/Feature/Admin/BookControllerAudibleTest.php
+
+		-
+			message: '#^Parameter \#2 \$instance of method Illuminate\\Container\\Container\:\:instance\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 4
+			path: tests/Feature/Admin/BookControllerAudibleTest.php
+
+		-
+			message: '#^Parameter \#2 \$instance of method Illuminate\\Container\\Container\:\:instance\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 3
+			path: tests/Feature/Admin/BookControllerSearchTest.php
+
+		-
+			message: '#^Call to an undefined static method Illuminate\\Support\\Facades\\Log\:\:shouldHaveReceived\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 2
+			path: tests/Feature/AdminNotificationControllerTest.php
+
+		-
+			message: '#^Call to method PHPUnit\\Framework\\Assert\:\:assertIsArray\(\) with array will always evaluate to true\.$#'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Feature/Api/AudibleApiIntegrationTest.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: tests/Feature/Api/AuthorsApiTest.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Cache\\Repository\:\:flush\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Feature/Api/BaseApiTest.php
+
+		-
+			message: '#^Call to an undefined static method Illuminate\\Support\\Facades\\Cache\:\:fake\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: tests/Feature/Api/BaseApiTest.php
+
+		-
+			message: '#^Class App\\Http\\Middleware\\RequireStandardRole not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: tests/Feature/Api/BookApiAutocompleteAuthorsTest.php
+
+		-
+			message: '#^Class App\\Http\\Middleware\\RequireStandardRole not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: tests/Feature/Api/BookApiAutocompleteNarratorsTest.php
+
+		-
+			message: '#^Class App\\Http\\Middleware\\RequireStandardRole not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: tests/Feature/Api/BookApiAutocompleteSeriesTest.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: tests/Feature/Api/BookApiOpenApiTest.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: tests/Feature/Api/BooksEnhancedApiTest.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: tests/Feature/Api/SeriesApiTest.php
+
+		-
+			message: '#^Offset ''authors'' does not exist on array\{genre\: array, author\: array, series\?\: array, title\: string, directoryPath\: string, skipped\?\: bool, error\?\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: tests/Feature/BookImportTest.php
+
+		-
+			message: '#^Parameter \#2 \$instance of method Illuminate\\Container\\Container\:\:instance\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: tests/Feature/Controllers/Admin/BookControllerTest.php
+
+		-
+			message: '#^Parameter \#2 \$instance of method Illuminate\\Container\\Container\:\:instance\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 2
+			path: tests/Feature/Controllers/Admin/LibraryRepairControllerTest.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: tests/Feature/QueueControllerTest.php
+
+		-
+			message: '#^Offset ''series_number'' does not exist on array\{genre\: array, author\: array, series\?\: array, title\: string, directoryPath\: string, skipped\?\: bool, error\?\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: tests/Import/Feature/BookImportTest.php

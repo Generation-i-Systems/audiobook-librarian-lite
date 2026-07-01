@@ -1,0 +1,13 @@
+includes:
+    - phpstan-baseline.neon
+    - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-mockery/extension.neon
+
+parameters:
+    level: 5
+    reportUnmatchedIgnoredErrors: false
+    paths:
+        - app
+        - tests
+    excludePaths:
+        - tests/coverage (?)
