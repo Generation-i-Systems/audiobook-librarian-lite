@@ -36,17 +36,18 @@ class ApiRootTest extends TestCase
 
         $data = $response->json();
 
-        // Check for common resources that should exist
-        $this->assertArrayHasKey('books', $data['resources']);
-        $this->assertArrayHasKey('authors', $data['resources']);
-        $this->assertArrayHasKey('series', $data['resources']);
+        // Lite has no book library — check for resources that actually exist:
+        // sync (bookmarks/positions/events), statistics, goals, devices.
+        $this->assertArrayHasKey('sync', $data['resources']);
+        $this->assertArrayHasKey('statistics', $data['resources']);
+        $this->assertArrayHasKey('goals', $data['resources']);
 
         // Verify structure of a resource entry
-        $bookRoutes = $data['resources']['books'];
-        $this->assertIsArray($bookRoutes);
-        $this->assertNotEmpty($bookRoutes);
+        $syncRoutes = $data['resources']['sync'];
+        $this->assertIsArray($syncRoutes);
+        $this->assertNotEmpty($syncRoutes);
 
-        $firstRoute = $bookRoutes[0];
+        $firstRoute = $syncRoutes[0];
         $this->assertArrayHasKey('method', $firstRoute);
         $this->assertArrayHasKey('uri', $firstRoute);
         $this->assertArrayHasKey('url', $firstRoute);

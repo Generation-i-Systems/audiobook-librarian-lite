@@ -197,4 +197,52 @@ class BadgeApiTest extends TestCase
             'is_notified' => 1,
         ]);
     }
+
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function unnotified_badges_returns_badge_fields_required_by_client(): void
+    {
+        [$user, $headers] = $this->authenticateUser();
+
+        $badge = Badge::create([
+            'key' => 'unnotified_' . Str::random(6),
+            'name' => 'Unnotified',
+            'description' => 'Unnotified badge',
+            'icon' => 'unnotified.png',
+            'image_url' => null,
+            'category' => 'listening',
+            'tier' => 'bronze',
+            'points' => 10,
+            'criteria' => ['session_count' => 1],
+            'is_active' => true,
+            'is_repeatable' => false,
+            'sort_order' => 1,
+        ]);
+
+        UserBadge::create([
+            'user_id' => (string) $user->id,
+            'device_id' => null,
+            'badge_id' => $badge->id,
+            'earned_at' => now(),
+            'tier_level' => 1,
+            'criteria_met' => [
+                'session_count' => 1,
+                'first_listening_date' => null,
+                'last_listening_date' => null,
+            ],
+            'is_notified' => false,
+        ]);
+
+        $response = $this->withHeaders($headers)->getJson('/api/v1/badges/unnotified');
+
+        $response->assertOk()
+            ->assertJsonPath('count', 1)
+            ->assertJsonPath('badges.0.id', $badge->id)
+            ->assertJsonPath('badges.0.key', $badge->key)
+            ->assertJsonPath('badges.0.name', $badge->name)
+            ->assertJsonPath('badges.0.description', $badge->description)
+            ->assertJsonPath('badges.0.category', $badge->category)
+            ->assertJsonPath('badges.0.tier', $badge->tier)
+            ->assertJsonPath('badges.0.points', $badge->points)
+            ->assertJsonPath('badges.0.is_repeatable', $badge->is_repeatable);
+    }
 }

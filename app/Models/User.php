@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -29,8 +28,6 @@ use App\Traits\Auditable;
  * @property \Illuminate\Support\Carbon|null $deleted_at
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\UserBookStatus> $bookStatuses
  * @property-read int|null $book_statuses_count
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Book> $books
- * @property-read int|null $books_count
  * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $notifications
  * @property-read int|null $notifications_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\UserBookStatus> $queuedBooks
@@ -122,11 +119,6 @@ class User extends Authenticatable
         return in_array($role, ['admin', 'super-admin'], true);
     }
 
-    public function books(): BelongsToMany
-    {
-        return $this->belongsToMany(Book::class)->withPivot('progress', 'last_listened')->withTimestamps();
-    }
-
     public function bookStatuses(): HasMany
     {
         return $this->hasMany(UserBookStatus::class);
@@ -164,26 +156,17 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the user's photo URL with fallback to last completed book's cover
+     * Get the user's photo URL.
+     *
+     * Lite has no book library, so there's no "last completed book" cover to
+     * fall back to — this used to query a books table that doesn't exist,
+     * which crashed on every single user serialization.
      *
      * @param mixed $value
      * @return string|null
      */
     public function getPhotoUrlAttribute($value)
     {
-        if ($value) {
-            return $value;
-        }
-
-        $lastCompletedBook = $this->books()
-            ->wherePivot('progress', '>=', 100)
-            ->orderByPivot('last_listened', 'desc')
-            ->first();
-
-        if ($lastCompletedBook && $lastCompletedBook->cover_url) {
-            return $lastCompletedBook->cover_url;
-        }
-
-        return null;
+        return $value ?: null;
     }
 }

@@ -84,7 +84,7 @@ class BadgeService
      *
      * @return Collection<int, (object{book_id: int, user_id: int, device_id: string,
      *   listening_date: string, seconds_listened: int, session_start: \Carbon\Carbon,
-     *   metadata: array{playback_speed: mixed}}&\stdClass)>
+     *   book_title: mixed, metadata: array{playback_speed: mixed}}&\stdClass)>
      */
     protected function userSessions(string $userId, ?string $deviceId = null): Collection
     {

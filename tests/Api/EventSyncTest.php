@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Api;
 
-use App\Models\Book;
 use App\Models\ListeningEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,7 +16,7 @@ class EventSyncTest extends TestCase
     public function testSyncCreatesNewEvents(): void
     {
         $user = User::factory()->create(['role' => 'library-user']);
-        $book = Book::factory()->create();
+        $book = (object) ['id' => random_int(100000, 999999)];
         $this->actingAs($user, 'api');
 
         $payload = [
@@ -61,7 +60,7 @@ class EventSyncTest extends TestCase
     public function testSyncDeduplicatesEvents(): void
     {
         $user = User::factory()->create(['role' => 'library-user']);
-        $book = Book::factory()->create();
+        $book = (object) ['id' => random_int(100000, 999999)];
         $this->actingAs($user, 'api');
 
         // Create event
@@ -111,7 +110,7 @@ class EventSyncTest extends TestCase
     public function testSyncReturnsRemoteEventsFromOtherDevices(): void
     {
         $user = User::factory()->create(['role' => 'library-user']);
-        $book = Book::factory()->create();
+        $book = (object) ['id' => random_int(100000, 999999)];
         $this->actingAs($user, 'api');
 
         ListeningEvent::create([
@@ -165,7 +164,7 @@ class EventSyncTest extends TestCase
     public function testSyncSkipsMigratedEvents(): void
     {
         $user = User::factory()->create(['role' => 'library-user']);
-        $book = Book::factory()->create();
+        $book = (object) ['id' => random_int(100000, 999999)];
         $this->actingAs($user, 'api');
 
         $payload = [

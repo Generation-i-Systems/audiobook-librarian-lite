@@ -192,6 +192,7 @@ class ListeningStatistic extends Model
         }
 
         $stats = $query->selectRaw('
+                MAX(title) as title,
                 SUM(seconds_listened) as total_seconds,
                 COUNT(*) as session_count,
                 MIN(listening_date) as first_listened,
@@ -203,6 +204,7 @@ class ListeningStatistic extends Model
 
         return [
             'book_id' => $bookId,
+            'title' => $stats->title ?? null,
             'total_seconds' => $stats->total_seconds ?? 0,
             'session_count' => $stats->session_count ?? 0,
             'first_listened' => $stats->first_listened,

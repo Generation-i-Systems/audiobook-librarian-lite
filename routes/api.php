@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ApiCapabilitiesController;
 use App\Http\Controllers\Api\ApiHealthController;
 use App\Http\Controllers\Api\ApiRootController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BadgeApiController;
 use App\Http\Controllers\Api\BookmarkApiController;
 use App\Http\Controllers\Api\BookmarkSyncController;
 use App\Http\Controllers\Api\DeviceController;
@@ -17,16 +18,19 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PositionSyncController;
 use App\Http\Controllers\Api\ReadingStatsApiController;
 use App\Http\Controllers\Api\StatisticsController;
+use App\Http\Controllers\DocsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     // API Root
     Route::get('/', [ApiRootController::class, 'index'])->name('api.v1.root');
+    Route::get('/openapi.json', [DocsController::class, 'openapi'])->name('api.v1.openapi');
 
     // Health check endpoints (no authentication required)
     Route::get('/health/ping', [ApiHealthController::class, 'ping']);
     Route::get('/health', [ApiHealthController::class, 'health']);
+    Route::get('/health/validate', [ApiHealthController::class, 'validateSpec']);
     Route::get('/health/capabilities', [ApiCapabilitiesController::class, 'capabilities']);
 
     // Authentication Routes (outside auth middleware)
@@ -67,6 +71,14 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [ListeningGoalController::class, 'store']);
             Route::put('/{goal}', [ListeningGoalController::class, 'update']);
             Route::delete('/{goal}', [ListeningGoalController::class, 'destroy']);
+        });
+
+        // Badge Routes
+        Route::prefix('badges')->group(function () {
+            Route::get('/', [BadgeApiController::class, 'index']);
+            Route::get('/user', [BadgeApiController::class, 'userBadges']);
+            Route::get('/unnotified', [BadgeApiController::class, 'unnotified']);
+            Route::post('/mark-notified', [BadgeApiController::class, 'markNotified']);
         });
 
         // Statistics Routes

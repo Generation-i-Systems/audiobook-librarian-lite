@@ -276,9 +276,13 @@ class StatisticsController extends Controller
             ->orderBy('timestamp_ms')
             ->get();
 
-        // Lite has no book library — listening_events doesn't carry a title,
-        // so there's nothing to resolve beyond a generic placeholder.
-        $bookTitles = fn (int $bookId): string => "Book $bookId";
+        // Lite has no book library — title comes from whatever the client
+        // included in an event's metadata (bookTitle), falling back to a
+        // generic placeholder when no event carried one.
+        $titlesByBookId = $events->groupBy('book_id')->map(
+            fn ($group) => $group->map(fn ($e) => $e->metadata['bookTitle'] ?? null)->filter()->first()
+        );
+        $bookTitles = fn (int $bookId): string => $titlesByBookId->get($bookId) ?? "Book $bookId";
 
         $nowMs = (int) (microtime(true) * 1000);
 
@@ -422,15 +426,17 @@ class StatisticsController extends Controller
             $weekdays
         );
 
-        // Lite has no book library — these sessions come from listening_events,
-        // which doesn't carry a title, so there's nothing to resolve.
+        // Lite has no book library — title comes from whatever the client
+        // included in an event's metadata (bookTitle), falling back to a
+        // generic placeholder when no event carried one.
         $books = $sessions->groupBy('book_id')
             ->map(static function (Collection $bookSessions, int $bookId): array {
                 $seconds = $bookSessions->sum('seconds_listened');
+                $title = $bookSessions->pluck('book_title')->filter()->first() ?? "Book $bookId";
 
                 return [
                     'book_id' => $bookId,
-                    'title' => "Book $bookId",
+                    'title' => $title,
                     'total_seconds' => $seconds,
                     'total_minutes' => (int) floor($seconds / 60),
                     'session_count' => $bookSessions->count(),
@@ -512,10 +518,10 @@ class StatisticsController extends Controller
     /**
      * @param Collection<int, (object{book_id: int, user_id: int, device_id: string,
      *   listening_date: string, seconds_listened: int, session_start: Carbon,
-     *   metadata: array{playback_speed: mixed}}&\stdClass)> $sessions
+     *   book_title: mixed, metadata: array{playback_speed: mixed}}&\stdClass)> $sessions
      * @return Collection<int, (object{book_id: int, user_id: int, device_id: string,
      *   listening_date: string, seconds_listened: int, session_start: Carbon,
-     *   metadata: array{playback_speed: mixed}}&\stdClass)>
+     *   book_title: mixed, metadata: array{playback_speed: mixed}}&\stdClass)>
      */
     private function filterSessionsForTimeline(
         Collection $sessions,
@@ -876,10 +882,13 @@ class StatisticsController extends Controller
 
         return response()->json([
             'success' => true,
-            // Lite has no book library — no title/cover metadata to attach, just the ID.
+            // Lite has no book library — title comes from whatever the client
+            // reported at session time; no cover metadata exists.
             'data'    => array_merge($stats, [
                 'book' => [
-                    'id' => $bookId,
+                    'id'          => $bookId,
+                    'title'       => $stats['title'] ?? null,
+                    'cover_image' => null,
                 ],
             ]),
         ]);
@@ -986,6 +995,7 @@ class StatisticsController extends Controller
         $query = ListeningStatistic::query()
             ->selectRaw('
                 book_id,
+                MAX(title) as title,
                 SUM(seconds_listened) as total_seconds,
                 COUNT(*) as session_count,
                 COUNT(DISTINCT listening_date) as days_listened,
@@ -1014,9 +1024,12 @@ class StatisticsController extends Controller
                 /** @var \App\Models\ListeningStatistic $stat */
                 return [
                     'book_id'            => $stat->book_id,
-                    // Lite has no book library — no title/cover metadata to attach.
+                    // Lite has no book library — title comes from whatever the
+                    // client reported at session time; no cover metadata exists.
                     'book'               => [
-                        'id' => $stat->book_id,
+                        'id'          => $stat->book_id,
+                        'title'       => $stat->title,
+                        'cover_image' => null,
                     ],
                     // @phpstan-ignore-next-line
                     'total_seconds'      => (int) $stat->total_seconds,

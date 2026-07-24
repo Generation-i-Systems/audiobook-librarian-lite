@@ -26,7 +26,7 @@ class ListeningActivityService
     /**
      * @var array<string, Collection<int, (object{book_id: int, user_id: int, device_id: string,
      *   listening_date: string, seconds_listened: int, session_start: Carbon,
-     *   metadata: array{playback_speed: mixed}}&\stdClass)>>
+     *   book_title: mixed, metadata: array{playback_speed: mixed}}&\stdClass)>>
      */
     private array $sessionsCache = [];
 
@@ -35,8 +35,10 @@ class ListeningActivityService
      *
      * @return Collection<int, (object{book_id: int, user_id: int, device_id: string,
      *   listening_date: string, seconds_listened: int, session_start: Carbon,
-     *   metadata: array{playback_speed: mixed}}&\stdClass)> listening_date is a Y-m-d string
-     *   local to the event's own timezone; session_start is the same instant as a Carbon.
+     *   book_title: mixed, metadata: array{playback_speed: mixed}}&\stdClass)> listening_date is
+     *   a Y-m-d string local to the event's own timezone; session_start is the same instant as a
+     *   Carbon. book_title is client-supplied (from event metadata) since lite has no book
+     *   library — usually a string, but not guaranteed.
      */
     public function getSessions(int|string|null $userId, ?string $deviceId = null): Collection
     {
@@ -96,6 +98,7 @@ class ListeningActivityService
                 'listening_date'   => $localStart->toDateString(),
                 'seconds_listened' => $secondsListened,
                 'session_start'    => $localStart,
+                'book_title'       => data_get($metadata, 'bookTitle'),
                 'metadata'         => [
                     'playback_speed' => data_get($metadata, 'playbackSpeed', 1.0),
                 ],
