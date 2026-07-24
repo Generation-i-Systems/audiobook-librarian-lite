@@ -2,12 +2,15 @@
 
 ### Security
 
+- Docker defaults and installation guidance now require a TLS-terminating reverse proxy for mobile-client access; the container HTTP listener is loopback-only.
 - Fixed path traversal vulnerability in `ImageProxyController` (`/image-proxy` and `/cover/{path}` routes): user-supplied paths are now confined to the book storage root via `realpath()` before serving files
 - Fixed path traversal vulnerability in `SkinAssetController` (`/skin-asset/{id}/{path}` route): asset paths are now confined within the resolved skin directory via `realpath()`
 - Fixed path traversal vulnerability in `DocsController` (`/docs/{path}` route): documentation paths are now confined to the `docs/` directory via `realpath()`
 - Added `throttle:10,1` rate limiting to all authentication endpoints (`/login`, `/register`, `/forgot-password`, `/auth/otp/*`, and OAuth social login routes)
 
 ### Changed
+
+- Server storage, import, backup, and Librivox defaults no longer depend on `/media`; all are portable environment-configurable paths. Added Caddy HTTPS Compose profile, native Linux/macOS/Windows installation guidance, and cross-platform configuration CI coverage.
 
 - Added host-based library profile routing so one running server can serve multiple isolated library variants (`main`, `librivox`) from the same codebase and `.env`, with request-time DB/storage switching by incoming host
 - Import CLI layout redesigned to fit within actual terminal height
