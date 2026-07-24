@@ -6,6 +6,10 @@
 /storage/*.key
 /storage/pail
 /storage/debugbar/*
+/storage/app/public/covers/*
+/storage/app/permissions-queue.txt
+/storage/import/test-audio/test.mp3
+/storage/logs/*
 /vendor
 .env
 .env.backup
