@@ -588,9 +588,10 @@ class StatisticsController extends Controller
     public function reportSession(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'book_id'              => 'nullable|integer|exists:books,id',
+            'book_id'              => 'nullable|integer',
             'title'                => 'required_without:book_id|string|max:255',
             'author'               => 'required_without:book_id|string|max:255',
+            'genre'                => 'nullable|string|max:255',
             'session_start'        => 'required|date',
             'session_end'          => 'required|date|after:session_start',
             'start_position_ms'    => 'required|integer|min:0',
@@ -638,7 +639,8 @@ class StatisticsController extends Controller
             $validated['actual_duration_ms'] ?? 0,
             $validated['events'] ?? [],
             $validated['title'] ?? null,
-            $validated['author'] ?? null
+            $validated['author'] ?? null,
+            $validated['genre'] ?? null
         );
         // Check for badge achievements after recording the session
         try {
@@ -690,9 +692,10 @@ class StatisticsController extends Controller
     {
         try {
             $validated = $request->validate([
-                'book_id'                => 'nullable|integer|exists:books,id',
+                'book_id'                => 'nullable|integer',
                 'title'                  => 'required_without:book_id|string|max:255',
                 'author'                 => 'required_without:book_id|string|max:255',
+                'genre'                  => 'nullable|string|max:255',
                 'device_id'              => 'required|string|max:255',
                 'seconds_listened'       => 'required|integer|min:1',
                 'start_position_seconds' => 'nullable|integer|min:0',
@@ -721,7 +724,8 @@ class StatisticsController extends Controller
             0,
             [],
             $validated['title'] ?? null,
-            $validated['author'] ?? null
+            $validated['author'] ?? null,
+            $validated['genre'] ?? null
         );
 
         // Check for badge achievements after recording the session
@@ -871,24 +875,14 @@ class StatisticsController extends Controller
             'device_id' => 'nullable|string|max:255',
         ]);
 
-        /** @var Book|null $book */
-        $book = Book::find($bookId);
-        if (! $book) {
-            return response()->json([
-                'error'   => 'Book not found',
-                'message' => 'The specified book could not be found',
-            ], 404);
-        }
-
         $stats = ListeningStatistic::getBookStats($bookId, $validated['device_id'] ?? null);
 
         return response()->json([
             'success' => true,
+            // Lite has no book library — no title/cover metadata to attach, just the ID.
             'data'    => array_merge($stats, [
                 'book' => [
-                    'id'          => $book->id,
-                    'title'       => $book->title,
-                    'cover_image' => $book->cover_image,
+                    'id' => $bookId,
                 ],
             ]),
         ]);
@@ -1023,10 +1017,9 @@ class StatisticsController extends Controller
                 /** @var \App\Models\ListeningStatistic $stat */
                 return [
                     'book_id'            => $stat->book_id,
+                    // Lite has no book library — no title/cover metadata to attach.
                     'book'               => [
-                        'id'          => $stat->book->id,
-                        'title'       => $stat->book->title,
-                        'cover_image' => $stat->book->cover_image,
+                        'id' => $stat->book_id,
                     ],
                     // @phpstan-ignore-next-line
                     'total_seconds'      => (int) $stat->total_seconds,
@@ -1289,23 +1282,20 @@ class StatisticsController extends Controller
      */
     private function getFavoriteGenres(?int $userId, string $deviceId, ?Carbon $startDate): array
     {
+        // Genre is stored directly on each listening_statistics row (client-supplied
+        // at report time), not derived via a book library join — lite has no books table.
         $query = $this->listeningStatsQuery($userId, $deviceId)
-            ->join('books', 'listening_statistics.book_id', '=', 'books.id')
-            ->join('book_genre', 'books.id', '=', 'book_genre.book_id')
-            ->join('genres', function ($join) {
-                $join->on('book_genre.genre_id', '=', 'genres.id')
-                    ->whereNull('genres.deleted_at');
-            });
+            ->whereNotNull('genre');
 
         if ($startDate) {
             $query->where('listening_date', '>=', $startDate->toDateString());
         }
 
-        return $query->selectRaw('genres.name, SUM(seconds_listened) as total_time')
-            ->groupBy('genres.name')
+        return $query->selectRaw('genre, SUM(seconds_listened) as total_time')
+            ->groupBy('genre')
             ->orderByDesc('total_time')
             ->limit(5)
-            ->pluck('genres.name')
+            ->pluck('genre')
             ->toArray();
     }
 

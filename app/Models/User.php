@@ -31,7 +31,6 @@ use App\Traits\Auditable;
  * @property-read int|null $book_statuses_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Book> $books
  * @property-read int|null $books_count
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\BookTag> $bookTags
  * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $notifications
  * @property-read int|null $notifications_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\UserBookStatus> $queuedBooks
@@ -139,16 +138,6 @@ class User extends Authenticatable
     }
 
 
-    public function favoritedAuthors(): BelongsToMany
-    {
-        return $this->belongsToMany(Author::class, 'user_author_favorites')->withTimestamps();
-    }
-
-    public function favoritedSeries(): BelongsToMany
-    {
-        return $this->belongsToMany(Series::class, 'user_series_favorites')->withTimestamps();
-    }
-
     public function badges(): HasMany
     {
         return $this->hasMany(UserBadge::class);
@@ -167,11 +156,6 @@ class User extends Authenticatable
     public function recommendationsReceived(): HasMany
     {
         return $this->hasMany(UserRecommendation::class, 'recipient_id');
-    }
-
-    public function bookTags(): HasMany
-    {
-        return $this->hasMany(BookTag::class);
     }
 
     public function reviews(): HasMany

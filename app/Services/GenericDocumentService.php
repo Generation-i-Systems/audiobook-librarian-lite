@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Author;
 use App\Models\Book;
 use App\Models\Bookmark;
 use App\Models\ExternalRead;
 use App\Models\Genre;
 use App\Models\Job;
 use App\Models\Message;
-use App\Models\Narrator;
-use App\Models\Series;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
@@ -62,17 +59,11 @@ class GenericDocumentService
             'users' => User::class,
             'messages' => Message::class,
             'genres' => Genre::class,
-            'authors' => Author::class,
-            'series' => Series::class,
             'books' => Book::class,
             'jobs' => Job::class,
             'bookmarks' => Bookmark::class,
             'external_reads' => ExternalRead::class,
         ];
-
-        if ($includeNarrators) {
-            $modelMap['narrators'] = Narrator::class;
-        }
 
         return $modelMap[$collection] ?? null;
     }

@@ -13,14 +13,12 @@ class PathTraversalTest extends TestCase
 
     protected string $tempDir;
     protected string $originalBookRoot;
-    protected string $originalSkinPaths;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->originalBookRoot = (string) config('app.book_root', '');
-        $this->originalSkinPaths = (string) config('app.skin_paths', '');
 
         $this->tempDir = storage_path('framework/testing/path-traversal-' . uniqid());
         File::makeDirectory($this->tempDir, 0755, true);
@@ -31,7 +29,6 @@ class PathTraversalTest extends TestCase
         // Restore config so downstream tests see the original values.
         config([
             'app.book_root' => $this->originalBookRoot,
-            'app.skin_paths' => $this->originalSkinPaths,
         ]);
 
         if (File::exists($this->tempDir)) {
@@ -109,37 +106,5 @@ class PathTraversalTest extends TestCase
         $response = $this->withStorageRoot()->get('/cover/../../../etc/passwd');
 
         $response->assertStatus(404);
-    }
-
-    // ── SkinAssetController::show() ─────────────────────────────────────────────
-
-    public function testSkinAssetBlocksPathTraversalInAssetPath(): void
-    {
-        $skinRoot = $this->tempDir . '/skins';
-        $skinDir = $skinRoot . '/myskin';
-        File::makeDirectory($skinDir . '/assets', 0755, true);
-        file_put_contents($skinDir . '/assets/ok.png', 'img');
-        file_put_contents($this->tempDir . '/secret.txt', 'secret');
-
-        Config::set('app.skin_paths', $skinRoot);
-
-        // Attempt to traverse out of the skin directory
-        $response = $this->get('/skin-asset/myskin/../../secret.txt');
-
-        $response->assertStatus(404);
-    }
-
-    public function testSkinAssetServesLegitimateAsset(): void
-    {
-        $skinRoot = $this->tempDir . '/skins';
-        $skinDir = $skinRoot . '/myskin';
-        File::makeDirectory($skinDir . '/assets', 0755, true);
-        file_put_contents($skinDir . '/assets/ok.png', "\x89PNG\r\n\x1a\n");
-
-        Config::set('app.skin_paths', $skinRoot);
-
-        $response = $this->get('/skin-asset/myskin/assets/ok.png');
-
-        $response->assertStatus(200);
     }
 }

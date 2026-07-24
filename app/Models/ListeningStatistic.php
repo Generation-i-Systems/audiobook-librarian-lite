@@ -57,6 +57,7 @@ class ListeningStatistic extends Model
         'book_id',
         'title',
         'author',
+        'genre',
         'user_id',
         'device_id',
         'listening_date',
@@ -124,13 +125,15 @@ class ListeningStatistic extends Model
         int $actualDurationMs = 0,
         array $events = [],
         ?string $title = null,
-        ?string $author = null
+        ?string $author = null,
+        ?string $genre = null
     ): self {
         /** @var self $session */
         $session = self::create([
             'book_id' => $bookId,
             'title' => $title,
             'author' => $author,
+            'genre' => $genre,
             'user_id' => $userId,
             'device_id' => $deviceId,
             'listening_date' => now()->toDateString(),

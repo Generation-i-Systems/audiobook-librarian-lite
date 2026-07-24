@@ -219,54 +219,48 @@ class BadgeService
     }
 
     /**
-     * Get number of unique genres explored
+     * Get number of unique genres explored.
+     *
+     * Genre is client-supplied and stored directly on each listening_statistics
+     * row — lite has no book library to join through, so "explored" means
+     * distinct genre values across sessions with meaningful engagement.
      */
-    protected function getGenresExplored(string $userId, ?string $deviceId = null): int
+    protected function getGenresExplored(string $userId, ?string $deviceId = null, int $minimumSeconds = 600): int
     {
-        $engagedBookIds = $this->getMeaningfullyEngagedBookIds($userId, $deviceId);
-
-        if ($engagedBookIds->isEmpty()) {
-            return 0;
-        }
-
-        return DB::table('book_genre')
-            ->whereIn('book_id', $engagedBookIds)
-            ->distinct('genre_id')
-            ->count('genre_id');
+        return $this->userSessions($userId, $deviceId)
+            ->whereNotNull('genre')
+            ->groupBy('genre')
+            ->filter(static fn (Collection $sessions): bool => $sessions->sum('seconds_listened') >= $minimumSeconds)
+            ->keys()
+            ->unique()
+            ->count();
     }
 
     /**
-     * Get number of unique authors explored
+     * Get number of unique authors explored (client-supplied, stored directly
+     * on each listening_statistics row).
      */
-    protected function getAuthorsExplored(string $userId, ?string $deviceId = null): int
+    protected function getAuthorsExplored(string $userId, ?string $deviceId = null, int $minimumSeconds = 600): int
     {
-        $engagedBookIds = $this->getMeaningfullyEngagedBookIds($userId, $deviceId);
-
-        if ($engagedBookIds->isEmpty()) {
-            return 0;
-        }
-
-        return DB::table('author_book')
-            ->whereIn('book_id', $engagedBookIds)
-            ->distinct('author_id')
-            ->count('author_id');
+        return $this->userSessions($userId, $deviceId)
+            ->whereNotNull('author')
+            ->groupBy('author')
+            ->filter(static fn (Collection $sessions): bool => $sessions->sum('seconds_listened') >= $minimumSeconds)
+            ->keys()
+            ->unique()
+            ->count();
     }
 
     /**
-     * Get number of unique narrators explored
+     * Get number of unique narrators explored.
+     *
+     * Not currently tracked — lite's listening_statistics has no narrator
+     * column (unlike title/author/genre). Returns 0 rather than querying a
+     * book-library table that doesn't exist.
      */
     protected function getNarratorsExplored(string $userId, ?string $deviceId = null): int
     {
-        $engagedBookIds = $this->getMeaningfullyEngagedBookIds($userId, $deviceId);
-
-        if ($engagedBookIds->isEmpty()) {
-            return 0;
-        }
-
-        return DB::table('book_narrator')
-            ->whereIn('book_id', $engagedBookIds)
-            ->distinct('narrator_id')
-            ->count('narrator_id');
+        return 0;
     }
 
     protected function getMeaningfullyEngagedBookIds(string $userId, ?string $deviceId = null, int $minimumSeconds = 600): Collection

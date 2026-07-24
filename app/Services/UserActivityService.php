@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Badge;
-use App\Models\Book;
 use App\Models\ListeningEvent;
 use App\Models\User;
 use App\Models\UserBadge;
+use App\Models\UserRecommendation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -20,11 +20,10 @@ class UserActivityService
             /** @var User|null $user */
             $user = User::with([
                 'badges.badge',
-                'progress.book',
-                'reviews.book',
-                'recommendationsReceived.book',
+                'progress',
+                'reviews',
                 'recommendationsReceived.sender',
-                'bookStatuses.book',
+                'bookStatuses',
             ])->find($userId);
 
             if (!$user) {
@@ -53,7 +52,6 @@ class UserActivityService
             );
 
             $listeningEvents = ListeningEvent::where('user_id', $userId)
-                ->with('book')
                 ->orderBy('timestamp_ms', 'desc')
                 ->get()
                 ->groupBy('book_id');
@@ -61,16 +59,12 @@ class UserActivityService
             $derivedProgress = $listeningEvents->map(function ($events) {
                 /** @var ListeningEvent $latest */
                 $latest = $events->first();
-                /** @var Book|null $book */
-                $book = $latest->book;
 
                 $percentage = 0;
                 $metadata = $latest->metadata ?? [];
 
                 if (isset($metadata['progress_percentage'])) {
                     $percentage = $metadata['progress_percentage'];
-                } elseif ($book instanceof Book && $book->duration) {
-                    $percentage = ($latest->position_ms / ($book->duration * 1000)) * 100;
                 }
 
                 $isCompleted = $latest->event_type === 'BOOK_FINISH'
@@ -79,7 +73,7 @@ class UserActivityService
 
                 return [
                     'book_id' => $latest->book_id,
-                    'book_title' => $book ? $book->title : 'Unknown Book',
+                    'book_title' => 'Unknown Book',
                     'percentage' => (float) $percentage,
                     'last_listened_at' => Carbon::createFromTimestampMs($latest->timestamp_ms),
                     'completed' => $isCompleted,
@@ -100,15 +94,15 @@ class UserActivityService
                 'progress' => $derivedProgress->toArray(),
                 'reviews' => $user->reviews->map(fn ($r) => [
                     'book_id' => $r->book_id,
-                    'book_title' => $r->book->title,
+                    'book_title' => $r->title ?? 'Unknown Book',
                     'comment' => $r->comment,
                     'age_rating' => $r->age_rating,
                     'content_rating' => $r->content_rating,
                     'created_at' => $r->created_at,
                 ])->toArray(),
-                'recommendations' => $user->recommendationsReceived->map(fn ($rec) => [
+                'recommendations' => $user->recommendationsReceived->map(fn (UserRecommendation $rec) => [
                     'book_id' => $rec->book_id,
-                    'book_title' => $rec->book->title,
+                    'book_title' => $rec->title ?? 'Unknown Book',
                     'sender_name' => $rec->sender?->name,
                     'message' => $rec->message,
                     'created_at' => $rec->created_at,
