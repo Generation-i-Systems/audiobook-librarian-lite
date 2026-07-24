@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Book;
+use App\Models\BookPosition;
 use App\Models\BookProgress;
 use App\Models\ListeningEvent;
 use App\Models\ListeningStatistic;
@@ -17,11 +18,17 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Services\ControllerDatabaseService as ControllerDatabase;
+use App\Services\ListeningActivityService;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class StatisticsController extends Controller
 {
+    public function __construct(private readonly ListeningActivityService $listeningActivityService)
+    {
+    }
+
     private function listeningStatsQuery(?int $userId, string $deviceId): \Illuminate\Database\Eloquent\Builder
     {
         $query = ListeningStatistic::query();
@@ -95,11 +102,13 @@ class StatisticsController extends Controller
             COUNT(DISTINCT listening_date) as days_with_activity
         ')->first();
 
-        $booksFinished = $userId !== null
-            ? $this->getCompletedBookDatesForUser($userId, $startDate)->count()
-            : $this->completedProgressQuery($userId, $deviceId, $startDate)
+        if ($userId !== null) {
+            $booksFinished = $this->getCompletedBookDatesForUser($userId, $startDate)->count();
+        } else {
+            $booksFinished = $this->completedProgressQuery($userId, $deviceId, $startDate)
                 ->distinct('book_id')
                 ->count('book_id');
+        }
 
         // Calculate streaks
         $currentStreak = $this->calculateCurrentStreak($userId, $deviceId);
@@ -143,60 +152,23 @@ class StatisticsController extends Controller
         $endDate   = ($validated['end_date'] ?? null) ? Carbon::parse($validated['end_date']) : now();
         $limit     = $validated['limit'] ?? 30;
 
-        $stats = $this->listeningStatsQuery($userId, $deviceId)
-            ->whereBetween('listening_date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->groupBy('listening_date')
-            ->orderByDesc('listening_date')
-            ->limit($limit);
+        $startDateString = $startDate->toDateString();
+        $endDateString   = $endDate->toDateString();
 
-        // Use different aggregation methods based on database driver
-        if (ControllerDatabase::getDriverName() === 'sqlite') {
-            // SQLite doesn't have JSON_ARRAYAGG, so we'll fetch the data and group it in PHP
-            $rawStats = $stats->selectRaw('
-                listening_date as date,
-                SUM(seconds_listened) * 1000 as listening_time_ms,
-                COUNT(*) as sessions_count
-            ')
-                ->toBase()
-                ->get();
+        $sessions = $this->listeningActivityService->getSessions($userId, $deviceId)
+            ->filter(static fn (object $session): bool => $session->listening_date >= $startDateString
+                && $session->listening_date <= $endDateString);
 
-            // Get book IDs separately for each date
-            /** @var \Illuminate\Support\Collection<int, object> $rawStats */
-            $dailyStats = $rawStats->map(function ($stat) use ($userId, $deviceId) {
-                /** @var \stdClass $stat */
-                $bookIds = $this->listeningStatsQuery($userId, $deviceId)
-                    ->where('listening_date', $stat->listening_date ?? $stat->date ?? '')
-                    ->distinct('book_id')
-                    ->pluck('book_id')
-                    ->toArray();
-
-                return [
-                    'date'              => $stat->listening_date ?? $stat->date ?? '',
-                    'listening_time_ms' => (int) ($stat->listening_time_ms ?? 0),
-                    'sessions_count'    => $stat->sessions_count ?? 0,
-                    'books_listened'    => $bookIds,
-                ];
-            });
-        } else {
-            // MySQL and other databases that support JSON_ARRAYAGG
-            $dailyStats = $stats->selectRaw('
-                listening_date as date,
-                SUM(seconds_listened) * 1000 as listening_time_ms,
-                COUNT(*) as sessions_count,
-                JSON_ARRAYAGG(DISTINCT book_id) as books_listened
-            ')
-                ->toBase()
-                ->get()
-                ->map(function ($stat) {
-                    /** @var \stdClass $stat */
-                    return [
-                        'date'              => $stat->date,
-                        'listening_time_ms' => (int) $stat->listening_time_ms,
-                        'sessions_count'    => $stat->sessions_count,
-                        'books_listened'    => json_decode((string) ($stat->books_listened ?? '[]'), true) ?? [],
-                    ];
-                });
-        }
+        $dailyStats = $sessions->groupBy('listening_date')
+            ->map(static fn (Collection $daySessions, string $date): array => [
+                'date'              => $date,
+                'listening_time_ms' => $daySessions->sum('seconds_listened') * 1000,
+                'sessions_count'    => $daySessions->count(),
+                'books_listened'    => $daySessions->pluck('book_id')->unique()->values()->all(),
+            ])
+            ->sortKeysDesc()
+            ->take($limit)
+            ->values();
 
         return response()->json([
             'daily_stats' => $dailyStats,
@@ -227,32 +199,26 @@ class StatisticsController extends Controller
         $dayFilter = $validated['day_filter'] ?? 'any';
         $weekdays = collect($validated['weekdays'] ?? [])->map(static fn ($day): int => (int) $day)->unique()->values()->all();
 
-        $timelineQuery = $this->applyTimelineFilters(
-            $this->listeningStatsQuery($userId, $deviceId),
+        $sessions = $this->filterSessionsForTimeline(
+            $this->listeningActivityService->getSessions($userId, $deviceId),
             $from,
             $to,
             $dayFilter,
             $weekdays
         );
 
-        $summary = (clone $timelineQuery)
-            ->selectRaw('SUM(seconds_listened) * 1000 as total_ms, COUNT(*) as total_sessions')
-            ->first();
+        $totalMs = $sessions->sum('seconds_listened') * 1000;
+        $totalSessions = $sessions->count();
 
-        [$periodSelect, $periodGroup, $periodOrder] = $this->timelinePeriodSql($groupBy);
-
-        $rows = (clone $timelineQuery)
-            ->selectRaw("{$periodSelect} as period, SUM(seconds_listened) * 1000 as listening_time_ms, COUNT(*) as sessions_count")
-            ->groupByRaw((string) $periodGroup) /** @phpstan-ignore argument.type */
-            ->orderByRaw((string) $periodOrder) /** @phpstan-ignore argument.type */
-            ->toBase()
-            ->get();
-
-        $bars = $rows->map(fn ($r) => [
-            'period'            => $r->period,
-            'listening_time_ms' => (int) ($r->listening_time_ms ?? 0),
-            'sessions_count'    => (int) ($r->sessions_count ?? 0),
-        ]);
+        $bars = $sessions
+            ->groupBy(fn (object $session): string => $this->timelinePeriodKey($session->listening_date, $groupBy))
+            ->map(static fn (Collection $periodSessions, string $period): array => [
+                'period'            => $period,
+                'listening_time_ms' => $periodSessions->sum('seconds_listened') * 1000,
+                'sessions_count'    => $periodSessions->count(),
+            ])
+            ->sortKeys()
+            ->values();
 
         $detail = null;
         if (isset($validated['detail_period_type'], $validated['detail_period'])) {
@@ -269,8 +235,8 @@ class StatisticsController extends Controller
         return response()->json([
             'bars'    => $bars,
             'summary' => [
-                'total_listening_time_ms' => (int) ($summary->total_ms ?? 0),
-                'total_sessions'          => (int) ($summary->total_sessions ?? 0),
+                'total_listening_time_ms' => (int) $totalMs,
+                'total_sessions'          => $totalSessions,
                 'from'                    => $from->toDateString(),
                 'to'                      => $to->toDateString(),
                 'group_by'                => $groupBy,
@@ -450,39 +416,33 @@ class StatisticsController extends Controller
     ): array {
         [$startDate, $endDate] = $this->resolveTimelineDetailRange($periodType, $period);
 
-        $detailQuery = $this->applyTimelineFilters(
-            $this->listeningStatsQuery($userId, $deviceId),
+        $sessions = $this->filterSessionsForTimeline(
+            $this->listeningActivityService->getSessions($userId, $deviceId),
             $startDate,
             $endDate,
             $dayFilter,
             $weekdays
         );
 
-        $summary = (clone $detailQuery)
-            ->selectRaw('SUM(seconds_listened) as total_seconds, COUNT(*) as session_count, COUNT(DISTINCT book_id) as books_count')
-            ->first();
+        $bookIds = $sessions->pluck('book_id')->filter()->unique()->values();
+        $titles = Book::whereIn('id', $bookIds)->pluck('title', 'id');
 
-        $books = (clone $detailQuery)
-            ->leftJoin('books', 'books.id', '=', 'listening_statistics.book_id')
-            ->selectRaw('listening_statistics.book_id, books.title, SUM(listening_statistics.seconds_listened) as total_seconds, COUNT(*) as session_count')
-            ->groupBy('listening_statistics.book_id', 'books.title')
-            ->orderByDesc('total_seconds')
-            ->toBase()
-            ->get()
-            ->map(static function (object $book): array {
-                $seconds = (int) ($book->total_seconds ?? 0);
+        $books = $sessions->groupBy('book_id')
+            ->map(static function (Collection $bookSessions, int $bookId) use ($titles): array {
+                $seconds = $bookSessions->sum('seconds_listened');
 
                 return [
-                    'book_id' => $book->book_id,
-                    'title' => $book->title,
+                    'book_id' => $bookId,
+                    'title' => $titles->get($bookId),
                     'total_seconds' => $seconds,
                     'total_minutes' => (int) floor($seconds / 60),
-                    'session_count' => (int) ($book->session_count ?? 0),
+                    'session_count' => $bookSessions->count(),
                 ];
             })
+            ->sortByDesc('total_seconds')
             ->values();
 
-        $totalSeconds = (int) ($summary->total_seconds ?? 0);
+        $totalSeconds = $sessions->sum('seconds_listened');
 
         return [
             'period_type' => $periodType,
@@ -491,8 +451,8 @@ class StatisticsController extends Controller
             'end_date' => $endDate->toDateString(),
             'total_seconds' => $totalSeconds,
             'total_minutes' => (int) floor($totalSeconds / 60),
-            'session_count' => (int) ($summary->session_count ?? 0),
-            'books_count' => (int) ($summary->books_count ?? 0),
+            'session_count' => $sessions->count(),
+            'books_count' => $bookIds->count(),
             'books' => $books,
         ];
     }
@@ -552,93 +512,73 @@ class StatisticsController extends Controller
         return [$date->copy()->startOfYear(), $date->copy()->endOfYear()];
     }
 
-    private function applyTimelineFilters(
-        \Illuminate\Database\Eloquent\Builder $query,
+    /**
+     * @param Collection<int, (object{book_id: int, user_id: int, device_id: string,
+     *   listening_date: string, seconds_listened: int, session_start: Carbon,
+     *   metadata: array{playback_speed: mixed}}&\stdClass)> $sessions
+     * @return Collection<int, (object{book_id: int, user_id: int, device_id: string,
+     *   listening_date: string, seconds_listened: int, session_start: Carbon,
+     *   metadata: array{playback_speed: mixed}}&\stdClass)>
+     */
+    private function filterSessionsForTimeline(
+        Collection $sessions,
         Carbon $from,
         Carbon $to,
         string $dayFilter = 'any',
         array $weekdays = []
-    ): \Illuminate\Database\Eloquent\Builder {
-        $query->whereDate('listening_date', '>=', $from->toDateString())
-            ->whereDate('listening_date', '<=', $to->toDateString());
+    ): Collection {
+        $fromDate = $from->toDateString();
+        $toDate = $to->toDateString();
+
+        $inRange = static function (object $session) use ($fromDate, $toDate): bool {
+            return $session->listening_date >= $fromDate && $session->listening_date <= $toDate;
+        };
+        $filtered = $sessions->filter($inRange);
 
         if (! empty($weekdays)) {
-            $this->applyWeekdayConstraint($query, $weekdays);
-        } elseif ($dayFilter !== 'any') {
-            $this->applyDayFilterConstraint($query, $dayFilter);
+            // The `weekdays` request parameter uses MySQL's WEEKDAY() convention (0=Monday..
+            // 6=Sunday), matching this endpoint's existing documented contract - not Carbon's
+            // dayOfWeek convention (0=Sunday..6=Saturday), so translate before comparing.
+            $normalizedDays = collect($weekdays)
+                ->map(static fn ($day): int => (max(0, min(6, (int) $day)) + 1) % 7)
+                ->unique()
+                ->values();
+
+            $matchesWeekday = static function (object $session) use ($normalizedDays): bool {
+                return $normalizedDays->contains(Carbon::parse($session->listening_date)->dayOfWeek);
+            };
+
+            return $filtered->filter($matchesWeekday);
         }
 
-        return $query;
-    }
-
-    private function applyDayFilterConstraint(\Illuminate\Database\Eloquent\Builder $query, string $dayFilter): void
-    {
-        $driver = ControllerDatabase::connection()->getDriverName();
-
         if ($dayFilter === 'weekday') {
-            if ($driver === 'sqlite') {
-                $query->whereRaw("CAST(strftime('%w', listening_date) AS INTEGER) BETWEEN 1 AND 5");
-            } else {
-                $query->whereRaw('WEEKDAY(listening_date) BETWEEN 0 AND 4');
-            }
+            $isWeekday = static fn (object $session): bool => ! Carbon::parse($session->listening_date)->isWeekend();
 
-            return;
+            return $filtered->filter($isWeekday);
         }
 
         if ($dayFilter === 'weekend') {
-            if ($driver === 'sqlite') {
-                $query->whereRaw("CAST(strftime('%w', listening_date) AS INTEGER) IN (0, 6)");
-            } else {
-                $query->whereRaw('WEEKDAY(listening_date) IN (5, 6)');
-            }
+            $isWeekend = static fn (object $session): bool => Carbon::parse($session->listening_date)->isWeekend();
+
+            return $filtered->filter($isWeekend);
         }
+
+        return $filtered;
     }
 
-    private function applyWeekdayConstraint(\Illuminate\Database\Eloquent\Builder $query, array $weekdays): void
+    /**
+     * Group key for a listening_date under a given timeline grouping mode. Uses ISO
+     * week-numbering (year 'o' + week 'W') for the 'week' grouping.
+     */
+    private function timelinePeriodKey(string $listeningDate, string $groupBy): string
     {
-        $normalizedDays = collect($weekdays)
-            ->map(static fn ($day): int => max(0, min(6, (int) $day)))
-            ->unique()
-            ->values();
-
-        if ($normalizedDays->isEmpty()) {
-            return;
-        }
-
-        $driver = ControllerDatabase::connection()->getDriverName();
-        $dayList = $normalizedDays->implode(',');
-
-        if ($driver === 'sqlite') {
-            $sqliteDays = $normalizedDays
-                ->map(static fn (int $day): int => $day === 6 ? 0 : $day + 1)
-                ->implode(',');
-
-            $query->whereRaw("CAST(strftime('%w', listening_date) AS INTEGER) IN ({$sqliteDays})");
-
-            return;
-        }
-
-        $query->whereRaw("WEEKDAY(listening_date) IN ({$dayList})");
-    }
-
-    private function timelinePeriodSql(string $groupBy): array
-    {
-        $driver = ControllerDatabase::connection()->getDriverName();
-
-        if ($driver === 'sqlite') {
-            return match ($groupBy) {
-                'week' => ["strftime('%Y-W%W', listening_date)", "strftime('%Y-W%W', listening_date)", "strftime('%Y-W%W', listening_date)"],
-                'month' => ["strftime('%Y-%m', listening_date)", "strftime('%Y-%m', listening_date)", "strftime('%Y-%m', listening_date)"],
-                'year' => ["strftime('%Y', listening_date)", "strftime('%Y', listening_date)", "strftime('%Y', listening_date)"],
-                default => ["date(listening_date)", "date(listening_date)", "date(listening_date)"],
-            };
-        }
+        $date = Carbon::parse($listeningDate);
 
         return match ($groupBy) {
-            'week' => ["DATE_FORMAT(listening_date, '%x-W%v')", "DATE_FORMAT(listening_date, '%x-W%v')", "DATE_FORMAT(listening_date, '%x-W%v')"],
-            'month' => ["DATE_FORMAT(listening_date, '%Y-%m')", "DATE_FORMAT(listening_date, '%Y-%m')", "DATE_FORMAT(listening_date, '%Y-%m')"],
-            'year' => ["DATE_FORMAT(listening_date, '%Y')", "DATE_FORMAT(listening_date, '%Y')", "DATE_FORMAT(listening_date, '%Y')"],
-            default => ['DATE(listening_date)', 'DATE(listening_date)', 'DATE(listening_date)'],
+            'week' => $date->format('o-\WW'),
+            'month' => $date->format('Y-m'),
+            'year' => $date->format('Y'),
+            default => $date->format('Y-m-d'),
         };
     }
 
@@ -1267,9 +1207,27 @@ class StatisticsController extends Controller
                 return [$progress->book_id => Carbon::parse((string) $progress->completed_at)];
             });
 
+        // The modern event-sourced completion path (BOOK_FINISH -> PositionMaterializer) writes
+        // to book_positions, not book_progress/user_book_status. last_event_timestamp_ms is the
+        // client-reported time of the finishing event.
+        $positionDates = BookPosition::query()
+            ->where('user_id', $userId)
+            ->where('completed', true)
+            ->get(['book_id', 'last_event_timestamp_ms'])
+            ->mapWithKeys(function (BookPosition $position): array {
+                return [$position->book_id => Carbon::createFromTimestampMs((int) $position->last_event_timestamp_ms)];
+            });
+
         $merged = $statusDates;
 
         foreach ($progressDates as $bookId => $date) {
+            $existing = $merged->get($bookId);
+            if (! $existing instanceof Carbon || $date->gt($existing)) {
+                $merged->put($bookId, $date);
+            }
+        }
+
+        foreach ($positionDates as $bookId => $date) {
             $existing = $merged->get($bookId);
             if (! $existing instanceof Carbon || $date->gt($existing)) {
                 $merged->put($bookId, $date);
@@ -1315,23 +1273,7 @@ class StatisticsController extends Controller
      */
     private function calculateCurrentStreak(?int $userId, string $deviceId): int
     {
-        $streak      = 0;
-        $currentDate = now();
-
-        while (true) {
-            $hasActivity = $this->listeningStatsQuery($userId, $deviceId)
-                ->where('listening_date', $currentDate->toDateString())
-                ->exists();
-
-            if (! $hasActivity) {
-                break;
-            }
-
-            $streak++;
-            $currentDate->subDay();
-        }
-
-        return $streak;
+        return $this->listeningActivityService->getCurrentStreak($userId, $deviceId);
     }
 
     /**
@@ -1339,31 +1281,7 @@ class StatisticsController extends Controller
      */
     private function calculateLongestStreak(?int $userId, string $deviceId): int
     {
-        $dates = $this->listeningStatsQuery($userId, $deviceId)
-            ->select('listening_date')
-            ->distinct()
-            ->orderBy('listening_date')
-            ->pluck('listening_date')
-            ->map(fn ($date) => Carbon::parse($date))
-            ->toArray();
-
-        if (empty($dates)) {
-            return 0;
-        }
-
-        $longestStreak = 1;
-        $currentStreak = 1;
-
-        for ($i = 1; $i < count($dates); $i++) {
-            if ($dates[$i]->diffInDays($dates[$i - 1]) === 1) {
-                $currentStreak++;
-                $longestStreak = max($longestStreak, $currentStreak);
-            } else {
-                $currentStreak = 1;
-            }
-        }
-
-        return $longestStreak;
+        return $this->listeningActivityService->getLongestStreak($userId, $deviceId);
     }
 
     /**
