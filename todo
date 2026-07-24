@@ -83,3 +83,75 @@ duplicate-detection fix, series-number preservation fix, reimport directory-path
 Audnex-enriched Audible metadata, gallery-to-www skin/theme migration (architectural
 choice specific to full server staying dependent on a separate www service — lite should
 stay standalone, or have skins removed entirely, not proxy to an external service).
+
+
+---
+
+## 2026-07-24 (cont.) — book-library/LibriVox/AI-import removal complete
+
+Follow-up to the remediation plan above. Removed the entire dead subsystem step 1
+described: ~100 app files (Admin book/author/genre/series controllers, LibriVox
+integration, Audible/GoogleBooks/Hardcover services, AI book-import tooling, book
+filesystem/import jobs) plus ~200 test files exercising them, in commit c19b5ed4.
+MySqlService.php: 2455 -> ~500 lines. DocumentStoreServiceInterface: 122 -> 42 methods
+(the 42 kept are everything actually called by the 15 live-routed Api/ controllers +
+the 6 kept Admin/ controllers (UserController, AccountRequestController, AdminController,
+MessageController, MessagesController, BadgeController) + DocumentUserProvider +
+CreateAdminUser command -- confirmed by grepping actual call sites, not guessing).
+
+Kept but stubbed: getBook()/listBooks() now always return null/empty rather than
+querying a `books` table that doesn't exist -- they used to hard-crash whenever
+ApiHealthController or BookmarkApiController's live routes were hit.
+
+Kept, not yet routed (per explicit instruction -- these need routes wired up, not
+deletion): app/Http/Controllers/Admin/{UserController,AccountRequestController,
+AdminController,MessageController,MessagesController,BadgeController}.php.
+
+Explicitly NOT touched, needs its own decision: Skin/Theme controllers and gallery
+views (SkinController, ThemeController, SkinAssetController, SkinWebController,
+BuiltinSkinController, SkinService, ThemeService, resources/views/gallery/skins/*,
+resources/views/admin/skins/*) -- also zero routes currently, same pattern as the
+removed book stuff, but SKIN_CUSTOMIZATION_SPEC.md suggests this was meant to be a
+real feature, not leftover cruft like LibriVox/books were. Ask before touching.
+
+### Result
+
+- `vendor/bin/phpstan analyse app --level=5`: 1000+ (fatal, couldn't complete) -> 197
+  errors, all now in a genuinely different category (see below), not book-library
+  leftovers.
+- `php artisan test --testsuite=Unit,Feature`: went from **unable to boot at all**
+  (referenced deleted classes) to 165 passing / 210 failing.
+- Full `app + tests` PHPStan scan still needed as a final check once tests are settled.
+
+### Remaining 197 app/ PHPStan errors -- a different, separate problem
+
+These are NOT book-library leftovers. They're missing Eloquent model classes for
+services that ARE kept/wanted, i.e. incomplete features, not stuff that "should never
+have been brought to this repo":
+
+- `App\Models\ReadingSession` -- used by UserReadingStatsService (kept, needed for
+  getUserActivityData)
+- `App\Models\Message` -- used by WorkflowMessagingService (kept, needed for
+  getMessages/createMessage/acknowledgeMessage)
+- `App\Models\Badge`, `App\Models\UserBadge` -- used by Admin/BadgeController (kept)
+  and referenced from User model
+- `App\Models\Playlist` -- used by ListeningGoalController (kept, live-routed!)
+- `App\Models\UserBookStatus` -- referenced from User model
+- Two now-genuinely-unused traits flagged by PHPStan itself: GenreMapping,
+  IsolatesErrorHandlers (trivial to remove, just hadn't gotten to it)
+
+Also: the `books` table still doesn't exist at all (no migration ever created it),
+so any test fixture using `Book::factory()->create()` fails with "no such table:
+books" -- this is the same architecture point from the entry above (book identity
+should be string-based, not a real library table). This affects
+BookmarkSyncControllerTest, StatisticsStreakTest, and probably others -- pre-existing,
+confirmed present before any of today's book-library removal work, not a regression
+from it.
+
+### Remaining 210 failing tests
+
+Re-run `php artisan test --testsuite=Unit,Feature` after picking up the model-class
+work above and see what's left. Expect most of the current 210 to clear once
+ReadingSession/Message/Badge/Playlist/UserBadge/UserBookStatus exist and the `books`
+table question is resolved. Anything still failing after that is worth a fresh look --
+don't assume it's more of the same.
