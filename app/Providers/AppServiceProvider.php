@@ -20,6 +20,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register custom Documentstore user provider
+        Auth::provider('documentstore', function ($app, array $config) {
+            return new \App\Auth\DocumentUserProvider(
+                $app->make(\App\Contracts\DocumentStoreServiceInterface::class)
+            );
+        });
+
         if (app()->runningUnitTests()) {
             $defaultConnection = (string) config('database.default');
             $sqliteDatabase = (string) config('database.connections.sqlite.database');
