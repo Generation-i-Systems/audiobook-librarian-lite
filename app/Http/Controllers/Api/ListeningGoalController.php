@@ -124,31 +124,16 @@ class ListeningGoalController extends Controller
 
         switch ($goal->metric) {
             case 'genre_hours':
-                $query->join('books', 'books.id', '=', 'listening_statistics.book_id')
-                    ->join('book_genre', 'book_genre.book_id', '=', 'books.id')
-                    ->join('genres', function ($join) {
-                        $join->on('genres.id', '=', 'book_genre.genre_id')
-                            ->whereNull('genres.deleted_at');
-                    })
-                    ->where('book_genre.genre_id', $goal->genre_id);
+                // Lite has no book library — genre is client-supplied and stored
+                // directly on each listening_statistics row.
+                $genreName = \App\Models\Genre::find($goal->genre_id)?->name;
+                $query->where('listening_statistics.genre', $genreName ?? '__no_match__');
                 break;
             case 'fiction_hours':
-                $query->join('books', 'books.id', '=', 'listening_statistics.book_id')
-                    ->join('book_genre', 'book_genre.book_id', '=', 'books.id')
-                    ->join('genres', function ($join) {
-                        $join->on('genres.id', '=', 'book_genre.genre_id')
-                            ->whereNull('genres.deleted_at');
-                    })
-                    ->where('genres.is_fiction', true);
-                break;
             case 'nonfiction_hours':
-                $query->join('books', 'books.id', '=', 'listening_statistics.book_id')
-                    ->join('book_genre', 'book_genre.book_id', '=', 'books.id')
-                    ->join('genres', function ($join) {
-                        $join->on('genres.id', '=', 'book_genre.genre_id')
-                            ->whereNull('genres.deleted_at');
-                    })
-                    ->where('genres.is_fiction', false);
+                $wantFiction = $goal->metric === 'fiction_hours';
+                $genreNames = \App\Models\Genre::where('is_fiction', $wantFiction)->pluck('name');
+                $query->whereIn('listening_statistics.genre', $genreNames);
                 break;
             case 'playlist_hours':
                 $query->join('user_book_status', function ($join) use ($userId, $goal) {

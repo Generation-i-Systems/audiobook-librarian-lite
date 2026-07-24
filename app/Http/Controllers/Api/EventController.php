@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Book;
 use App\Models\ListeningEvent;
 use App\Services\BadgeService;
 use App\Services\PositionMaterializer;
@@ -73,16 +72,10 @@ class EventController extends Controller
                     continue;
                 }
 
+                // Lite has no book library — the client-supplied bookId is used
+                // as-is (an opaque grouping key), not validated/resolved against
+                // a real books table.
                 $resolvedBookId = $eventData['bookId'];
-                if (! Book::where('id', $resolvedBookId)->exists()) {
-                    $bookPath = $eventData['bookPath'] ?? null;
-                    if ($bookPath) {
-                        $book = Book::where('directory_path', 'like', '%' . basename($bookPath) . '%')->first();
-                        if ($book) {
-                            $resolvedBookId = $book->id;
-                        }
-                    }
-                }
 
                 ListeningEvent::create([
                     'id'                  => $eventData['id'],

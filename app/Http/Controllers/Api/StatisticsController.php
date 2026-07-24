@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Book;
 use App\Models\BookPosition;
 use App\Models\BookProgress;
 use App\Models\ListeningEvent;
@@ -277,10 +276,9 @@ class StatisticsController extends Controller
             ->orderBy('timestamp_ms')
             ->get();
 
-        // Resolve book titles in a single query
-        $bookIds = $events->pluck('book_id')->unique()->filter()->values();
-        $books   = Book::whereIn('id', $bookIds)->pluck('title', 'id');
-        $bookTitles = fn (int $bookId): string => $books->get($bookId) ?? "Book $bookId";
+        // Lite has no book library — listening_events doesn't carry a title,
+        // so there's nothing to resolve beyond a generic placeholder.
+        $bookTitles = fn (int $bookId): string => "Book $bookId";
 
         $nowMs = (int) (microtime(true) * 1000);
 
@@ -424,16 +422,15 @@ class StatisticsController extends Controller
             $weekdays
         );
 
-        $bookIds = $sessions->pluck('book_id')->filter()->unique()->values();
-        $titles = Book::whereIn('id', $bookIds)->pluck('title', 'id');
-
+        // Lite has no book library — these sessions come from listening_events,
+        // which doesn't carry a title, so there's nothing to resolve.
         $books = $sessions->groupBy('book_id')
-            ->map(static function (Collection $bookSessions, int $bookId) use ($titles): array {
+            ->map(static function (Collection $bookSessions, int $bookId): array {
                 $seconds = $bookSessions->sum('seconds_listened');
 
                 return [
                     'book_id' => $bookId,
-                    'title' => $titles->get($bookId),
+                    'title' => "Book $bookId",
                     'total_seconds' => $seconds,
                     'total_minutes' => (int) floor($seconds / 60),
                     'session_count' => $bookSessions->count(),
@@ -452,7 +449,7 @@ class StatisticsController extends Controller
             'total_seconds' => $totalSeconds,
             'total_minutes' => (int) floor($totalSeconds / 60),
             'session_count' => $sessions->count(),
-            'books_count' => $bookIds->count(),
+            'books_count' => $books->count(),
             'books' => $books,
         ];
     }
@@ -986,7 +983,7 @@ class StatisticsController extends Controller
             'period_days' => 'nullable|integer|min:1|max:365',
         ]);
 
-        $query = ListeningStatistic::with('book')
+        $query = ListeningStatistic::query()
             ->selectRaw('
                 book_id,
                 SUM(seconds_listened) as total_seconds,

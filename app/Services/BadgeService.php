@@ -8,6 +8,7 @@ use App\Models\Badge;
 use App\Models\BookPosition;
 use App\Models\BookProgress;
 use App\Models\ClientEvent;
+use App\Models\Genre;
 use App\Models\ListeningGoal;
 use App\Models\Message;
 use App\Models\Playlist;
@@ -391,10 +392,6 @@ class BadgeService
             return 0;
         }
 
-        $legacyLibraryBookIds = DB::table('book_user')
-            ->where('user_id', $userId)
-            ->pluck('book_id');
-
         $statusBookIds = DB::table('user_book_status')
             ->where('user_id', $userId)
             ->whereNotNull('book_id')
@@ -406,8 +403,7 @@ class BadgeService
             ->distinct()
             ->pluck('book_id');
 
-        return $legacyLibraryBookIds
-            ->merge($statusBookIds)
+        return $statusBookIds
             ->merge($positionBookIds)
             ->filter()
             ->unique()
@@ -440,19 +436,14 @@ class BadgeService
         return (int) ($this->userSessions($userId, $deviceId)->count() * 1.5);
     }
 
+    /**
+     * Not currently tracked — lite's listening_statistics has no language
+     * column (unlike title/author/genre). Returns 0 rather than querying a
+     * book-library table that doesn't exist.
+     */
     protected function getLanguageVariety(string $userId, ?string $deviceId = null): int
     {
-        $engagedBookIds = $this->getMeaningfullyEngagedBookIds($userId, $deviceId);
-
-        if ($engagedBookIds->isEmpty()) {
-            return 0;
-        }
-
-        return DB::table('books')
-            ->whereIn('id', $engagedBookIds)
-            ->whereNotNull('language')
-            ->distinct('language')
-            ->count('language');
+        return 0;
     }
 
     /**
@@ -603,40 +594,24 @@ class BadgeService
         return $query;
     }
 
+    /**
+     * Not currently tracked — publication year isn't stored anywhere in
+     * lite's string-based listening data. Returns 0 rather than querying a
+     * book-library table that doesn't exist.
+     */
     protected function getClassicBooksExplored(string $userId, ?string $deviceId = null): int
     {
-        $engagedBookIds = $this->getMeaningfullyEngagedBookIds($userId, $deviceId);
-
-        if ($engagedBookIds->isEmpty()) {
-            return 0;
-        }
-
-        return DB::table('books')
-            ->whereIn('id', $engagedBookIds)
-            ->where(function ($query): void {
-                $query->where('year', '<=', 1970)
-                    ->orWhereYear('release_date', '<=', 1970);
-            })
-            ->distinct('id')
-            ->count('id');
+        return 0;
     }
 
+    /**
+     * Not currently tracked — publisher/source isn't stored anywhere in
+     * lite's string-based listening data. Returns 0 rather than querying a
+     * book-library table that doesn't exist.
+     */
     protected function getIndieBooksExplored(string $userId, ?string $deviceId = null): int
     {
-        $engagedBookIds = $this->getMeaningfullyEngagedBookIds($userId, $deviceId);
-
-        if ($engagedBookIds->isEmpty()) {
-            return 0;
-        }
-
-        return DB::table('books')
-            ->whereIn('id', $engagedBookIds)
-            ->where(function ($query): void {
-                $query->whereNull('publisher_id')
-                    ->orWhere('source', '!=', 'audible');
-            })
-            ->distinct('id')
-            ->count('id');
+        return 0;
     }
 
     protected function getRecommendationsSent(string $userId): int
@@ -910,8 +885,10 @@ class BadgeService
                     return 0;
                 }
 
-                $bookIds = DB::table('book_genre')->where('genre_id', $goal->genre_id)->pluck('book_id');
-                $sessions = $sessions->whereIn('book_id', $bookIds);
+                $genreName = Genre::find($goal->genre_id)?->name;
+                $sessions = $genreName === null
+                    ? $sessions->filter(static fn (): bool => false)
+                    : $sessions->where('genre', $genreName);
                 break;
             case 'playlist_hours':
                 if ($goal->playlist_id === null) {
@@ -925,18 +902,10 @@ class BadgeService
                 $sessions = $sessions->whereIn('book_id', $bookIds);
                 break;
             case 'fiction_hours':
-                $bookIds = DB::table('book_genre')
-                    ->join('genres', 'genres.id', '=', 'book_genre.genre_id')
-                    ->where('genres.is_fiction', true)
-                    ->pluck('book_genre.book_id');
-                $sessions = $sessions->whereIn('book_id', $bookIds);
-                break;
             case 'nonfiction_hours':
-                $bookIds = DB::table('book_genre')
-                    ->join('genres', 'genres.id', '=', 'book_genre.genre_id')
-                    ->where('genres.is_fiction', false)
-                    ->pluck('book_genre.book_id');
-                $sessions = $sessions->whereIn('book_id', $bookIds);
+                $wantFiction = $goal->metric === 'fiction_hours';
+                $genreNames = Genre::where('is_fiction', $wantFiction)->pluck('name');
+                $sessions = $sessions->whereIn('genre', $genreNames);
                 break;
             default:
                 break;
@@ -945,40 +914,23 @@ class BadgeService
         return (int) floor($sessions->sum('seconds_listened') / 60);
     }
 
+    /**
+     * Not currently tracked — series isn't stored anywhere in lite's
+     * string-based listening data (unlike title/author/genre). Returns an
+     * empty collection rather than querying book-library tables that don't
+     * exist, so series-based badge criteria simply never trigger.
+     */
     protected function getBookSeriesIds(Collection $bookIds): Collection
     {
-        if ($bookIds->isEmpty()) {
-            return collect();
-        }
-
-        return DB::table('books')
-            ->whereIn('id', $bookIds)
-            ->whereNotNull('series_id')
-            ->pluck('series_id')
-            ->merge(
-                DB::table('book_series')
-                    ->whereIn('book_id', $bookIds)
-                    ->pluck('series_id')
-            )
-            ->filter()
-            ->unique()
-            ->values();
+        return collect();
     }
 
+    /**
+     * @see self::getBookSeriesIds()
+     */
     protected function getSeriesBookIds(int $seriesId): Collection
     {
-        return DB::table('books')
-            ->where('series_id', $seriesId)
-            ->pluck('id')
-            ->merge(
-                DB::table('book_series')
-                    ->where('series_id', $seriesId)
-                    ->pluck('book_id')
-            )
-            ->filter()
-            ->map(static fn ($bookId): int => (int) $bookId)
-            ->unique()
-            ->values();
+        return collect();
     }
 
     /**
