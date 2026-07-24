@@ -2,3 +2,84 @@ implement a friend group that is accessed from the profile screen. allow people 
 The push notification permission request should be moved to a screen in the FTUE and the reason for the request be given as supporting downloading (if browse is enabled) and friend requests.
 
 if a user is in a friend group add an option to the long press of a book in the list and the player overflow menu to sync listen with one or more users. sync listen will have two modes. 1) all playback operations of one user are mirrored to all other users (play/pause/seek/etc) 2) the position of all users is tracked and shared and visible in a dialog on the player. in either mode there is also an option in the playback menu to send a message to all members of the shared playback group. There should be an element that can be added to skins to open the shared playback dialog
+
+
+---
+
+## 2026-07-24 — repo remediation needed (found while porting recent full-server changes)
+
+Full PHPStan run (`vendor/bin/phpstan analyse app tests --level=5`) currently returns 1000+
+errors, repo-wide, predating this session. The pre-commit hook runs this over the whole
+app+tests tree, so **no commit currently passes it** — today's commits used --no-verify
+per explicit instruction, after each was individually verified with php -l, Pint, and the
+relevant test suite by hand.
+
+Plan, in order:
+
+1. **Remove dead subsystems first.** Confirmed via grep that these have zero routes and
+   zero callers anywhere except themselves/each other:
+   - LibriVox catalog integration (models/migrations never existed in lite; already removed
+     from MySqlService.php in commit b53f9f21, but LibriVoxController and
+     LibriVoxApiService/LibriVoxBookAdapter are still sitting there unused)
+   - Book-library CRUD in MySqlService.php / DocumentStoreServiceInterface / 
+     MockDocumentStoreService: ~80 methods for authors/genres/narrators/series/book CRUD,
+     library-repair-issue queue, needs-review queue, job queue. Lite's purpose is syncing
+     position/stats/bookmarks by string identity, not hosting a book library — user
+     confirmed this directly, and zero callers exist outside MySqlService itself.
+   - Admin\BookController and friends (BookActionController, BookSearchController,
+     BookFormController, BookMetadataSearchController) — zero routes reference them.
+   - Skin/Theme controllers and gallery views also appear to have zero routes (grepped
+     routes/web.php + routes/api.php for Skin|Theme, no matches) — worth confirming before
+     deciding whether to remove or actually wire up, since SKIN_CUSTOMIZATION_SPEC.md
+     suggests this was meant to be a real feature, not dead code like LibriVox/books.
+   - Also check: AudibleService/AudibleApiService/GoogleBooksApiService/HardcoverService/
+     OpenAudibleParser/BookImportService/BookEnrichmentService — likely all dead too
+     ("no book source should be used in lite in any way" per direct instruction), but not
+     yet confirmed route/caller-free the way LibriVox and book-CRUD were.
+
+2. **Then tune phpstan.neon rule selection.** Per instruction: many of the remaining error
+   types are flagging standard Laravel magic (dynamic properties, facade returns, etc.)
+   that shouldn't be treated as real errors for this codebase. Review and disable/ignore
+   those specific rules rather than baselining everything wholesale.
+
+3. **Then clean up whatever's left**, file by file.
+
+Do NOT bulk-add everything to phpstan-baseline.neon as a shortcut — that hides real bugs
+along with noise. Fix the dead-code and rule-tuning issues first; only baseline what's left
+after that, and only with explicit sign-off.
+
+## 2026-07-24 — remaining full-server ports not yet done
+
+Still pending from a session that ported recent full-server (audiobook-librarian-server)
+changes into lite (fork point was 2026-07-01, commit `20c67502`, i.e. based on
+full-server commit 4c741ac5):
+
+- **Bookmark/position sync**: DONE (b6bdd2ff)
+- **Close-orphaned-sessions dedup fix**: DONE (41002346)
+- **Stats/badges off dead listening_statistics table**: DONE (e1176ea4)
+- **Portable HTTPS self-hosting**: DONE (ff51d5d7)
+- **Push token registration endpoint** (full-server f5032544): lite has Device
+  model/DeviceController already; not yet ported.
+- **Cancellable account deletion** (full-server 73d0abdc): lite has no equivalent yet;
+  not yet ported. Also needs `permanentlyDeleteUser()` added to
+  tests/Mocks/MockDocumentStoreService.php (found while porting the bookmark/position fix,
+  deferred here since it's only needed by this feature).
+- **Mobile QR connect feature** (full-server a78178fe + fix a71875d3): lite has NO
+  app-connect-qr feature at all — this was added to full-server after lite's fork point,
+  so it's a real feature gap, not just a fix to port.
+- **Dependency security patches** (full-server ef763e7d, c21a4560): guzzle/psr7/npm dev
+  deps; check lite's composer.lock/package.json versions against these.
+- **Skin designer improvements** (full-server 4f9a0002 foregroundImage support, c5c89710
+  gallery/designer linking, dae39442 night-mode doc): relevant IF skins turn out to be a
+  real (not dead) feature in lite per item above — check that first.
+- **CLAUDE.md/GEMINI.md → AGENTS.md consolidation** (full-server c9192076): lite's docs
+  have diverged significantly; low priority, may not be a straight port.
+- **Misc low-priority**: stop tracking generated coverage reports (full-server d9252ee3,
+  .gitignore only), skins sleep-timer docs (full-server 3a74a853, docs only).
+
+Explicitly NOT relevant to lite (book-library-only features in full server, lite has no
+book library): Progression Fantasy Collection Seed importer, stale directory_path
+duplicate-detection fix, series-number preservation fix, reimport directory-path fix,
+Audnex-enriched Audible metadata, gallery-to-www skin/theme migration (architectural
+choice specific to full server staying dependent on a separate www service — lite should
+stay standalone, or have skins removed entirely, not proxy to an external service).
