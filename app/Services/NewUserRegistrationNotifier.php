@@ -69,9 +69,18 @@ class NewUserRegistrationNotifier
 
         $userId = (string) ($userData['id'] ?? '');
 
-        $editUserUrl = $userId !== '' ? route('admin.users.edit', $userId) : route('admin.users.index');
-        $verifyUserUrl = $userId !== '' ? route('admin.users.verify', $userId) : null;
-        $usersIndexUrl = route('admin.users.index');
+        // Lite has no admin user-management web UI (only the API routes under
+        // /api/v1/admin/users), so these links are omitted rather than pointing
+        // at routes that don't exist.
+        $editUserUrl = \Illuminate\Support\Facades\Route::has('admin.users.edit') && $userId !== ''
+            ? route('admin.users.edit', $userId)
+            : null;
+        $verifyUserUrl = \Illuminate\Support\Facades\Route::has('admin.users.verify') && $userId !== ''
+            ? route('admin.users.verify', $userId)
+            : null;
+        $usersIndexUrl = \Illuminate\Support\Facades\Route::has('admin.users.index')
+            ? route('admin.users.index')
+            : null;
 
         $meta = [
             'source' => $source,

@@ -29,7 +29,9 @@ A new user has registered via the **{{ $meta['source'] ?? 'unknown' }}** channel
 @if(!empty($editUserUrl))
     - **Review user**: <a href="{{ $editUserUrl }}">Open user in admin panel</a>
 @endif
-- **User list**: <a href="{{ $usersIndexUrl }}">View all users</a>
+@if(!empty($usersIndexUrl))
+    - **User list**: <a href="{{ $usersIndexUrl }}">View all users</a>
+@endif
 
 @if(!empty($verifyUserUrl))
     The user is currently marked as **unverified**. To approve them, open the user in the admin panel and use the **Verify**

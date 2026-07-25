@@ -17,13 +17,13 @@ class NewUserRegistrationNotification extends Mailable
 
     public array $meta;
 
-    public string $editUserUrl;
+    public ?string $editUserUrl;
 
     public ?string $verifyUserUrl;
 
-    public string $usersIndexUrl;
+    public ?string $usersIndexUrl;
 
-    public function __construct(array $user, array $meta, string $editUserUrl, ?string $verifyUserUrl, string $usersIndexUrl)
+    public function __construct(array $user, array $meta, ?string $editUserUrl, ?string $verifyUserUrl, ?string $usersIndexUrl)
     {
         $this->user = $user;
         $this->meta = $meta;
