@@ -137,7 +137,8 @@ class ListeningGoalController extends Controller
                 break;
             case 'playlist_hours':
                 $query->join('user_book_status', function ($join) use ($userId, $goal) {
-                    $join->on('user_book_status.book_id', '=', 'listening_statistics.book_id')
+                    $join->on('user_book_status.title', '=', 'listening_statistics.title')
+                        ->on('user_book_status.author', '=', 'listening_statistics.author')
                         ->where('user_book_status.user_id', $userId)
                         ->where('user_book_status.playlist_id', $goal->playlist_id);
                 });

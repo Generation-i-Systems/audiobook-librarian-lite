@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\Book;
 use App\Models\Bookmark;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -13,7 +12,8 @@ class BookmarkApiTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
-    protected Book $book;
+    protected string $bookTitle = 'Project Hail Mary';
+    protected string $bookAuthor = 'Andy Weir';
 
     protected function setUp(): void
     {
@@ -21,7 +21,6 @@ class BookmarkApiTest extends TestCase
         $this->user = User::factory()->create([
             'role' => 'library-user',
         ]);
-        $this->book = Book::factory()->create();
     }
 
     /**
@@ -31,14 +30,17 @@ class BookmarkApiTest extends TestCase
     {
         Bookmark::factory()->count(3)->create([
             'user_id' => $this->user->id,
-            'book_id' => $this->book->id,
-            'title' => 'Test Bookmark',
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'notes' => 'This is a test note',
             'is_auto' => false,
         ]);
 
         $response = $this->actingAs($this->user, 'web')
-            ->getJson("/api/v1/bookmarks/{$this->book->id}");
+            ->getJson('/api/v1/bookmarks?' . http_build_query([
+                'title' => $this->bookTitle,
+                'author' => $this->bookAuthor,
+            ]));
 
         $response->assertStatus(200)
             ->assertJsonCount(3, 'bookmarks')
@@ -46,9 +48,9 @@ class BookmarkApiTest extends TestCase
                 'bookmarks' => [
                     '*' => [
                         'id',
-                        'book_id',
-                        'position_ms',
                         'title',
+                        'author',
+                        'position_ms',
                         'note',
                         'is_auto',
                         'created_at',
@@ -65,29 +67,30 @@ class BookmarkApiTest extends TestCase
     public function test_create_bookmark(): void
     {
         $payload = [
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'position_ms' => 120000,
-            'title' => 'New Bookmark',
             'note' => 'Plot twist at 2 minutes',
             'is_auto' => false,
         ];
 
         $response = $this->actingAs($this->user, 'web')
-            ->postJson("/api/v1/bookmarks/{$this->book->id}", $payload);
+            ->postJson('/api/v1/bookmarks', $payload);
 
         $response->assertStatus(201)
             ->assertJson([
-                'book_id' => $this->book->id,
+                'title' => $this->bookTitle,
+                'author' => $this->bookAuthor,
                 'position_ms' => 120000,
-                'title' => 'New Bookmark',
                 'note' => 'Plot twist at 2 minutes',
                 'is_auto' => false,
             ]);
 
         $this->assertDatabaseHas('bookmarks', [
             'user_id' => $this->user->id,
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'position' => 120,
-            'title' => 'New Bookmark',
             'notes' => 'Plot twist at 2 minutes',
             'is_auto' => false,
         ]);
@@ -99,31 +102,39 @@ class BookmarkApiTest extends TestCase
     public function test_create_bookmark_minimal(): void
     {
         $payload = [
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'position_ms' => 60000,
         ];
 
         $response = $this->actingAs($this->user, 'web')
-            ->postJson("/api/v1/bookmarks/{$this->book->id}", $payload);
+            ->postJson('/api/v1/bookmarks', $payload);
 
         $response->assertStatus(201)
-            ->assertJsonStructure(['id', 'book_id', 'position_ms', 'created_at']);
+            ->assertJsonStructure(['id', 'title', 'author', 'position_ms', 'created_at']);
 
         $this->assertDatabaseHas('bookmarks', [
             'user_id' => $this->user->id,
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'position' => 60,
             'chapter' => '1'
         ]);
     }
 
     /**
-     * Test 404 for non-existent book.
+     * There is no book catalog in lite, so title/author are opaque and
+     * client-supplied: an unrecognized book simply has no bookmarks yet, not a 404.
      */
-    public function test_get_bookmarks_not_found(): void
+    public function test_get_bookmarks_for_unknown_book_returns_empty(): void
     {
         $response = $this->actingAs($this->user, 'web')
-            ->getJson("/api/v1/bookmarks/9999");
+            ->getJson('/api/v1/bookmarks?' . http_build_query([
+                'title' => 'Unknown Book',
+                'author' => 'Unknown Author',
+            ]));
 
-        $response->assertStatus(404);
+        $response->assertStatus(200)
+            ->assertJsonCount(0, 'bookmarks');
     }
 }

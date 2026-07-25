@@ -316,14 +316,14 @@ class MySqlService implements DocumentStoreServiceInterface, DocumentStatsServic
         return $this->getUserLibraryStateService()->updateBookQueue($userId, $bookIds);
     }
 
-    public function getBookmarks(string $userId, string $bookId): array
+    public function getBookmarks(string $userId, string $title, string $author): array
     {
-        return $this->getUserLibraryStateService()->getBookmarks($userId, $bookId);
+        return $this->getUserLibraryStateService()->getBookmarks($userId, $title, $author);
     }
 
-    public function getBookmark(string $bookmarkId, string $userId, string $bookId): ?array
+    public function getBookmark(string $bookmarkId, string $userId, string $title, string $author): ?array
     {
-        return $this->getUserLibraryStateService()->getBookmark($bookmarkId, $userId, $bookId);
+        return $this->getUserLibraryStateService()->getBookmark($bookmarkId, $userId, $title, $author);
     }
 
     public function createBookmark(array $data): string
@@ -336,9 +336,9 @@ class MySqlService implements DocumentStoreServiceInterface, DocumentStatsServic
         return $this->getUserLibraryStateService()->updateBookmark($bookmarkId, $data);
     }
 
-    public function deleteBookmark(string $bookmarkId, string $userId, string $bookId): bool
+    public function deleteBookmark(string $bookmarkId, string $userId, string $title, string $author): bool
     {
-        return $this->getUserLibraryStateService()->deleteBookmark($bookmarkId, $userId, $bookId);
+        return $this->getUserLibraryStateService()->deleteBookmark($bookmarkId, $userId, $title, $author);
     }
 
     public function deleteBookmarkById(string $bookmarkId, string $userId): bool

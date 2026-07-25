@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Models\Badge;
-use App\Models\Book;
 use App\Models\BookProgress;
 use App\Models\ListeningEvent;
 use App\Models\Review;
@@ -77,7 +76,8 @@ class UserActivityServiceTest extends TestCase
         $service = new UserActivityService();
         $user = User::factory()->create();
         $sender = User::factory()->create(['name' => 'Recommender']);
-        $book = Book::factory()->create(['title' => 'Deep Work', 'duration' => 1000]);
+        $bookId = random_int(100000, 999999);
+        $bookTitle = 'Deep Work';
 
         $badge = Badge::query()->create([
             'key' => 'habit-bronze',
@@ -117,7 +117,8 @@ class UserActivityServiceTest extends TestCase
 
         BookProgress::query()->create([
             'user_id' => $user->id,
-            'book_id' => $book->id,
+            'title' => $bookTitle,
+            'author' => 'Test Author',
             'device_id' => 'device-1',
             'current_position_seconds' => 200,
             'total_duration_seconds' => 1000,
@@ -128,7 +129,8 @@ class UserActivityServiceTest extends TestCase
 
         Review::query()->create([
             'user_id' => $user->id,
-            'book_id' => $book->id,
+            'book_id' => $bookId,
+            'title' => $bookTitle,
             'comment' => 'Great book',
             'age_rating' => 12,
             'content_rating' => 'clean',
@@ -137,13 +139,14 @@ class UserActivityServiceTest extends TestCase
         UserRecommendation::query()->create([
             'sender_id' => $sender->id,
             'recipient_id' => $user->id,
-            'book_id' => $book->id,
+            'book_id' => $bookId,
+            'title' => $bookTitle,
             'message' => 'You should read this.',
         ]);
 
         UserBookStatus::query()->create([
             'user_id' => $user->id,
-            'book_id' => $book->id,
+            'book_id' => $bookId,
             'status' => 'queue',
             'order' => 0,
         ]);
@@ -151,7 +154,8 @@ class UserActivityServiceTest extends TestCase
         ListeningEvent::query()->create([
             'id' => 'evt-1',
             'user_id' => $user->id,
-            'book_id' => $book->id,
+            'title' => $bookTitle,
+            'author' => 'Test Author',
             'event_type' => 'BOOK_PROGRESS',
             'timestamp_ms' => now()->getTimestampMs(),
             'position_ms' => 800000,

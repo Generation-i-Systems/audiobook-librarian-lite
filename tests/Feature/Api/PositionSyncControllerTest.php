@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\Book;
 use App\Models\BookProgress;
 use App\Models\Device;
 use App\Models\User;
@@ -16,7 +15,8 @@ class PositionSyncControllerTest extends TestCase
 
     protected $user;
     protected $token;
-    protected $book;
+    protected string $bookTitle = 'Project Hail Mary';
+    protected string $bookAuthor = 'Andy Weir';
 
     protected function setUp(): void
     {
@@ -28,7 +28,6 @@ class PositionSyncControllerTest extends TestCase
         ]);
 
         $this->token = $this->user->createToken('test-token')->plainTextToken;
-        $this->book = Book::factory()->create();
 
         Sanctum::actingAs($this->user);
     }
@@ -53,14 +52,14 @@ class PositionSyncControllerTest extends TestCase
 
     public function testGetPositionsReturnsOnlyEnabledDevices()
     {
-        $device1 = Device::create([
+        Device::create([
             'device_id' => 'device-1',
             'user_id' => $this->user->id,
             'name' => 'Phone',
             'sync_enabled' => true,
         ]);
 
-        $device2 = Device::create([
+        Device::create([
             'device_id' => 'device-2',
             'user_id' => $this->user->id,
             'name' => 'Tablet',
@@ -68,7 +67,8 @@ class PositionSyncControllerTest extends TestCase
         ]);
 
         BookProgress::create([
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'user_id' => $this->user->id,
             'device_id' => 'device-1',
             'current_position_seconds' => 1800,
@@ -76,7 +76,8 @@ class PositionSyncControllerTest extends TestCase
         ]);
 
         BookProgress::create([
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'user_id' => $this->user->id,
             'device_id' => 'device-2',
             'current_position_seconds' => 3600,
@@ -100,14 +101,14 @@ class PositionSyncControllerTest extends TestCase
 
     public function testGetPositionsExcludesRequestingDevice()
     {
-        $device1 = Device::create([
+        Device::create([
             'device_id' => 'device-1',
             'user_id' => $this->user->id,
             'name' => 'Phone',
             'sync_enabled' => true,
         ]);
 
-        $device2 = Device::create([
+        Device::create([
             'device_id' => 'device-2',
             'user_id' => $this->user->id,
             'name' => 'Tablet',
@@ -115,7 +116,8 @@ class PositionSyncControllerTest extends TestCase
         ]);
 
         BookProgress::create([
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'user_id' => $this->user->id,
             'device_id' => 'device-1',
             'current_position_seconds' => 1800,
@@ -123,7 +125,8 @@ class PositionSyncControllerTest extends TestCase
         ]);
 
         BookProgress::create([
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'user_id' => $this->user->id,
             'device_id' => 'device-2',
             'current_position_seconds' => 3600,
@@ -146,7 +149,7 @@ class PositionSyncControllerTest extends TestCase
 
     public function testGetPositionsFiltersBySinceParameter()
     {
-        $device = Device::create([
+        Device::create([
             'device_id' => 'device-1',
             'user_id' => $this->user->id,
             'name' => 'Phone',
@@ -154,7 +157,8 @@ class PositionSyncControllerTest extends TestCase
         ]);
 
         $oldProgress = BookProgress::create([
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'user_id' => $this->user->id,
             'device_id' => 'device-1',
             'current_position_seconds' => 1800,
@@ -182,14 +186,14 @@ class PositionSyncControllerTest extends TestCase
 
     public function testShowPositionForSpecificBook()
     {
-        $device1 = Device::create([
+        Device::create([
             'device_id' => 'device-1',
             'user_id' => $this->user->id,
             'name' => 'Phone',
             'sync_enabled' => true,
         ]);
 
-        $device2 = Device::create([
+        Device::create([
             'device_id' => 'device-2',
             'user_id' => $this->user->id,
             'name' => 'Tablet',
@@ -197,7 +201,8 @@ class PositionSyncControllerTest extends TestCase
         ]);
 
         BookProgress::create([
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'user_id' => $this->user->id,
             'device_id' => 'device-1',
             'current_position_seconds' => 1800,
@@ -205,7 +210,8 @@ class PositionSyncControllerTest extends TestCase
         ]);
 
         BookProgress::create([
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'user_id' => $this->user->id,
             'device_id' => 'device-2',
             'current_position_seconds' => 3600,
@@ -215,11 +221,15 @@ class PositionSyncControllerTest extends TestCase
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
         ])
-            ->getJson("/api/v1/sync/positions/{$this->book->id}");
+            ->getJson('/api/v1/sync/positions/show?' . http_build_query([
+                'title' => $this->bookTitle,
+                'author' => $this->bookAuthor,
+            ]));
 
         $response->assertStatus(200)
             ->assertJson([
-                'book_id' => $this->book->id,
+                'title' => $this->bookTitle,
+                'author' => $this->bookAuthor,
             ]);
 
         $positions = $response->json('positions');
@@ -237,7 +247,8 @@ class PositionSyncControllerTest extends TestCase
                 'client_timestamp' => now()->toIso8601String(),
                 'positions' => [
                     [
-                        'book_id' => $this->book->id,
+                        'title' => $this->bookTitle,
+                        'author' => $this->bookAuthor,
                         'position_ms' => 3600000,
                         'progress_percentage' => 50.0,
                         'current_chapter' => 5,
@@ -255,7 +266,8 @@ class PositionSyncControllerTest extends TestCase
             ]);
 
         $this->assertDatabaseHas('book_progress', [
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'device_id' => 'device-1',
             'current_position_seconds' => 3600,
             'progress_percentage' => 50.0,
@@ -264,7 +276,7 @@ class PositionSyncControllerTest extends TestCase
 
     public function testStorePositionDetectsConflicts()
     {
-        $device1 = Device::create([
+        Device::create([
             'device_id' => 'device-1',
             'user_id' => $this->user->id,
             'name' => 'Phone',
@@ -272,7 +284,8 @@ class PositionSyncControllerTest extends TestCase
         ]);
 
         BookProgress::create([
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'user_id' => $this->user->id,
             'device_id' => 'device-1',
             'current_position_seconds' => 5400,
@@ -289,7 +302,8 @@ class PositionSyncControllerTest extends TestCase
                 'client_timestamp' => now()->toIso8601String(),
                 'positions' => [
                     [
-                        'book_id' => $this->book->id,
+                        'title' => $this->bookTitle,
+                        'author' => $this->bookAuthor,
                         'position_ms' => 3600000,
                         'progress_percentage' => 50.0,
                         'current_chapter' => 5,
@@ -304,7 +318,7 @@ class PositionSyncControllerTest extends TestCase
 
         $conflicts = $response->json('conflicts');
         $this->assertCount(1, $conflicts);
-        $this->assertEquals($this->book->id, $conflicts[0]['book_id']);
+        $this->assertEquals($this->bookTitle, $conflicts[0]['title']);
         $this->assertEquals('device-1', $conflicts[0]['server_device_id']);
     }
 
@@ -317,7 +331,8 @@ class PositionSyncControllerTest extends TestCase
                 'client_timestamp' => now()->toIso8601String(),
                 'positions' => [
                     [
-                        'book_id' => $this->book->id,
+                        'title' => $this->bookTitle,
+                        'author' => $this->bookAuthor,
                         'position_ms' => 3600000,
                         'progress_percentage' => 50.0,
                         'updated_at' => now()->toIso8601String(),

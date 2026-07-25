@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Cli\Feature\Commands;
 
-use App\Models\Book;
 use App\Models\ListeningEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,12 +16,16 @@ class CloseOrphanedSessionsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function createSessionStart(User $user, Book $book, int $timestampMs, string $deviceId = 'real-device'): ListeningEvent
+    private const BOOK_TITLE = 'Project Hail Mary';
+    private const BOOK_AUTHOR = 'Andy Weir';
+
+    private function createSessionStart(User $user, int $timestampMs, string $deviceId = 'real-device'): ListeningEvent
     {
         return ListeningEvent::create([
             'id'           => (string) Str::uuid(),
             'user_id'      => $user->id,
-            'book_id'      => $book->id,
+            'title'        => self::BOOK_TITLE,
+            'author'       => self::BOOK_AUTHOR,
             'event_type'   => 'SESSION_START',
             'timestamp_ms' => $timestampMs,
             'position_ms'  => 0,
@@ -39,15 +42,15 @@ class CloseOrphanedSessionsTest extends TestCase
     public function it_synthesizes_one_end_event_for_an_orphaned_session(): void
     {
         $user = User::factory()->create();
-        $book = Book::factory()->create();
         $start = now()->subHours(6)->getTimestampMs();
 
-        $this->createSessionStart($user, $book, $start);
+        $this->createSessionStart($user, $start);
 
         Artisan::call('sessions:close-orphaned');
 
         $ends = ListeningEvent::where('user_id', $user->id)
-            ->where('book_id', $book->id)
+            ->where('title', self::BOOK_TITLE)
+            ->where('author', self::BOOK_AUTHOR)
             ->where('event_type', 'SESSION_END')
             ->get();
 
@@ -65,17 +68,17 @@ class CloseOrphanedSessionsTest extends TestCase
         // synthesized another duplicate SESSION_END, without bound (observed in production as
         // a single orphaned session accumulating 100+ duplicate end events).
         $user = User::factory()->create();
-        $book = Book::factory()->create();
         $start = now()->subHours(6)->getTimestampMs();
 
-        $this->createSessionStart($user, $book, $start);
+        $this->createSessionStart($user, $start);
 
         Artisan::call('sessions:close-orphaned');
         Artisan::call('sessions:close-orphaned');
         Artisan::call('sessions:close-orphaned');
 
         $ends = ListeningEvent::where('user_id', $user->id)
-            ->where('book_id', $book->id)
+            ->where('title', self::BOOK_TITLE)
+            ->where('author', self::BOOK_AUTHOR)
             ->where('event_type', 'SESSION_END')
             ->get();
 
@@ -86,15 +89,15 @@ class CloseOrphanedSessionsTest extends TestCase
     public function synthesized_metadata_uses_the_same_camel_case_keys_real_clients_send(): void
     {
         $user = User::factory()->create();
-        $book = Book::factory()->create();
         $start = now()->subHours(2)->getTimestampMs();
 
-        $this->createSessionStart($user, $book, $start);
+        $this->createSessionStart($user, $start);
 
         Artisan::call('sessions:close-orphaned');
 
         $end = ListeningEvent::where('user_id', $user->id)
-            ->where('book_id', $book->id)
+            ->where('title', self::BOOK_TITLE)
+            ->where('author', self::BOOK_AUTHOR)
             ->where('event_type', 'SESSION_END')
             ->firstOrFail();
 
@@ -107,14 +110,14 @@ class CloseOrphanedSessionsTest extends TestCase
     public function it_does_not_touch_sessions_with_a_real_matching_end(): void
     {
         $user = User::factory()->create();
-        $book = Book::factory()->create();
         $start = now()->subHours(2)->getTimestampMs();
 
-        $this->createSessionStart($user, $book, $start, 'real-device');
+        $this->createSessionStart($user, $start, 'real-device');
         ListeningEvent::create([
             'id'           => (string) Str::uuid(),
             'user_id'      => $user->id,
-            'book_id'      => $book->id,
+            'title'        => self::BOOK_TITLE,
+            'author'       => self::BOOK_AUTHOR,
             'event_type'   => 'SESSION_END',
             'timestamp_ms' => $start + 600_000,
             'position_ms'  => 0,
@@ -129,7 +132,8 @@ class CloseOrphanedSessionsTest extends TestCase
         Artisan::call('sessions:close-orphaned');
 
         $ends = ListeningEvent::where('user_id', $user->id)
-            ->where('book_id', $book->id)
+            ->where('title', self::BOOK_TITLE)
+            ->where('author', self::BOOK_AUTHOR)
             ->where('event_type', 'SESSION_END')
             ->get();
 

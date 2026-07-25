@@ -41,7 +41,8 @@ class EventController extends Controller
         $validated = $request->validate([
             'events'                     => 'present|array|max:100',
             'events.*.id'                => 'required|string|max:255',
-            'events.*.bookId'            => 'required|integer',
+            'events.*.bookTitle'         => 'required|string|max:255',
+            'events.*.bookAuthor'        => 'required|string|max:255',
             'events.*.bookPath'          => 'nullable|string|max:500',
             'events.*.eventType'         => 'required|string|max:50',
             'events.*.timestampMs'       => 'required|integer|min:0',
@@ -72,15 +73,13 @@ class EventController extends Controller
                     continue;
                 }
 
-                // Lite has no book library — the client-supplied bookId is used
-                // as-is (an opaque grouping key), not validated/resolved against
-                // a real books table.
-                $resolvedBookId = $eventData['bookId'];
-
+                // Lite has no book library — the client-supplied title/author
+                // are used as-is as the record's real identity.
                 ListeningEvent::create([
                     'id'                  => $eventData['id'],
                     'user_id'             => $user->id,
-                    'book_id'             => $resolvedBookId,
+                    'title'               => $eventData['bookTitle'],
+                    'author'              => $eventData['bookAuthor'],
                     'event_type'          => $eventData['eventType'],
                     'timestamp_ms'        => $eventData['timestampMs'],
                     'position_ms'         => $eventData['positionMs'],
@@ -97,7 +96,8 @@ class EventController extends Controller
                 $this->positionMaterializer->materialize([
                     'id'           => $eventData['id'],
                     'user_id'      => $user->id,
-                    'book_id'      => $resolvedBookId,
+                    'title'        => $eventData['bookTitle'],
+                    'author'       => $eventData['bookAuthor'],
                     'event_type'   => $eventData['eventType'],
                     'timestamp_ms' => $eventData['timestampMs'],
                     'position_ms'  => $eventData['positionMs'],
@@ -141,7 +141,8 @@ class EventController extends Controller
             $mappedEvents = $remoteEvents->map(function ($event) {
                 return [
                     'id'                => $event->id,
-                    'bookId'            => $event->book_id,
+                    'bookTitle'         => $event->title,
+                    'bookAuthor'        => $event->author,
                     'eventType'         => $event->event_type,
                     'timestampMs'       => $event->timestamp_ms,
                     'positionMs'        => $event->position_ms,
@@ -214,11 +215,13 @@ class EventController extends Controller
     /**
      * Get events for a specific book.
      */
-    public function getBookEvents(Request $request, int $bookId): JsonResponse
+    public function getBookEvents(Request $request): JsonResponse
     {
         $user = auth()->user();
 
         $validated = $request->validate([
+            'title'     => 'required|string|max:255',
+            'author'    => 'required|string|max:255',
             'startTime' => 'nullable|integer|min:0',
             'endTime'   => 'nullable|integer|min:0',
             'eventType' => 'nullable|string',
@@ -226,7 +229,8 @@ class EventController extends Controller
         ]);
 
         $query = ListeningEvent::where('user_id', $user->id)
-            ->where('book_id', $bookId);
+            ->where('title', $validated['title'])
+            ->where('author', $validated['author']);
 
         if (! empty($validated['startTime'])) {
             $query->where('timestamp_ms', '>=', $validated['startTime']);
@@ -252,7 +256,8 @@ class EventController extends Controller
 
         return response()->json([
             'success' => true,
-            'bookId'  => $bookId,
+            'title'   => $validated['title'],
+            'author'  => $validated['author'],
             'events'  => $events,
             'count'   => $events->count(),
             'hasMore' => $hasMore,
@@ -269,7 +274,8 @@ class EventController extends Controller
         $validated = $request->validate([
             'startTime' => 'nullable|integer|min:0',
             'endTime'   => 'nullable|integer|min:0',
-            'bookId'    => 'nullable|integer',
+            'title'     => 'nullable|string|max:255',
+            'author'    => 'nullable|string|max:255',
         ]);
 
         $query = ListeningEvent::where('user_id', $user->id);
@@ -282,21 +288,22 @@ class EventController extends Controller
             $query->where('timestamp_ms', '<=', $validated['endTime']);
         }
 
-        if (! empty($validated['bookId'])) {
-            $query->where('book_id', $validated['bookId']);
+        if (! empty($validated['title'])) {
+            $query->where('title', $validated['title'])->where('author', $validated['author'] ?? '');
         }
 
         $totalEvents = $query->count();
 
         $startTime = $validated['startTime'] ?? null;
         $endTime   = $validated['endTime'] ?? null;
-        $bookId    = $validated['bookId'] ?? null;
+        $title     = $validated['title'] ?? null;
+        $author    = $validated['author'] ?? null;
 
         $scopeQuery = fn ($q) => $q
             ->where('user_id', $user->id)
             ->when($startTime, fn ($q) => $q->where('timestamp_ms', '>=', $startTime))
             ->when($endTime, fn ($q) => $q->where('timestamp_ms', '<=', $endTime))
-            ->when($bookId, fn ($q) => $q->where('book_id', $bookId));
+            ->when($title, fn ($q) => $q->where('title', $title)->where('author', $author ?? ''));
 
         $totalListeningTime = ListeningEvent::query()
             ->where('event_type', 'SESSION_END')
@@ -307,20 +314,23 @@ class EventController extends Controller
         $booksStarted = ListeningEvent::query()
             ->where('event_type', 'BOOK_START')
             ->tap($scopeQuery)
-            ->distinct('book_id')
-            ->count('book_id');
+            ->select('title', 'author')
+            ->distinct()
+            ->count();
 
         $booksFinishedByListening = ListeningEvent::query()
             ->where('event_type', 'BOOK_FINISH')
             ->tap($scopeQuery)
-            ->distinct('book_id')
-            ->count('book_id');
+            ->select('title', 'author')
+            ->distinct()
+            ->count();
 
         $booksMarkedComplete = ListeningEvent::query()
             ->where('event_type', 'BOOK_MARK_COMPLETE')
             ->tap($scopeQuery)
-            ->distinct('book_id')
-            ->count('book_id');
+            ->select('title', 'author')
+            ->distinct()
+            ->count();
 
         return response()->json([
             'success' => true,

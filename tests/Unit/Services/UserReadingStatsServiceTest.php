@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Models\Book;
 use App\Models\ReadingSession;
 use App\Models\User;
 use App\Services\UserReadingStatsService;
@@ -22,9 +21,9 @@ class UserReadingStatsServiceTest extends TestCase
     {
         $service = new UserReadingStatsService();
         $user = User::factory()->create();
-        $book = Book::factory()->create();
+        $bookId = random_int(100000, 999999);
 
-        $session = $service->recordReadingSession((string) $user->id, (string) $book->id, [
+        $session = $service->recordReadingSession((string) $user->id, (string) $bookId, [
             'started_at' => '2026-03-16 10:00:00',
             'ended_at' => '2026-03-16 10:30:00',
             'duration_seconds' => 1800,
@@ -35,7 +34,7 @@ class UserReadingStatsServiceTest extends TestCase
         ]);
 
         $this->assertSame((string) $user->id, (string) $session['user_id']);
-        $this->assertSame((string) $book->id, (string) $session['book_id']);
+        $this->assertSame((string) $bookId, (string) $session['book_id']);
         $this->assertSame(1800, $session['duration_seconds']);
         $this->assertSame('ios', $session['device']);
     }
@@ -48,12 +47,12 @@ class UserReadingStatsServiceTest extends TestCase
         $service = new UserReadingStatsService();
         $user = User::factory()->create();
         $otherUser = User::factory()->create();
-        $bookA = Book::factory()->create();
-        $bookB = Book::factory()->create();
+        $bookAId = random_int(100000, 999999);
+        $bookBId = random_int(100000, 999999);
 
         ReadingSession::query()->create([
             'user_id' => $user->id,
-            'book_id' => $bookA->id,
+            'book_id' => $bookAId,
             'started_at' => '2026-03-15 09:00:00',
             'ended_at' => '2026-03-15 09:10:00',
             'duration_seconds' => 600,
@@ -61,7 +60,7 @@ class UserReadingStatsServiceTest extends TestCase
 
         ReadingSession::query()->create([
             'user_id' => $user->id,
-            'book_id' => $bookA->id,
+            'book_id' => $bookAId,
             'started_at' => '2026-03-16 09:00:00',
             'ended_at' => '2026-03-16 09:20:00',
             'duration_seconds' => 1200,
@@ -69,7 +68,7 @@ class UserReadingStatsServiceTest extends TestCase
 
         ReadingSession::query()->create([
             'user_id' => $user->id,
-            'book_id' => $bookB->id,
+            'book_id' => $bookBId,
             'started_at' => '2026-03-16 11:00:00',
             'ended_at' => '2026-03-16 11:15:00',
             'duration_seconds' => 900,
@@ -77,7 +76,7 @@ class UserReadingStatsServiceTest extends TestCase
 
         ReadingSession::query()->create([
             'user_id' => $user->id,
-            'book_id' => $bookA->id,
+            'book_id' => $bookAId,
             'started_at' => '2026-03-17 08:00:00',
             'ended_at' => '2026-03-17 08:30:00',
             'duration_seconds' => 1800,
@@ -85,14 +84,14 @@ class UserReadingStatsServiceTest extends TestCase
 
         ReadingSession::query()->create([
             'user_id' => $otherUser->id,
-            'book_id' => $bookA->id,
+            'book_id' => $bookAId,
             'started_at' => '2026-03-17 09:00:00',
             'ended_at' => '2026-03-17 09:05:00',
             'duration_seconds' => 300,
         ]);
 
         $daily = $service->getDailyStats((string) $user->id, '2026-03-15', '2026-03-17');
-        $bookStats = $service->getBookStats((string) $user->id, (string) $bookA->id);
+        $bookStats = $service->getBookStats((string) $user->id, (string) $bookAId);
         $userStats = $service->getUserStats((string) $user->id);
         $streaks = $service->getStreaks((string) $user->id);
 

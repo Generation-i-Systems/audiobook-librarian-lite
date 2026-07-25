@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Models\Book;
 use App\Models\Bookmark;
 use App\Models\ExternalRead;
 use App\Models\User;
@@ -23,19 +22,19 @@ class UserLibraryStateServiceTest extends TestCase
     {
         $service = new UserLibraryStateService();
         $user = User::factory()->create();
-        $bookA = Book::factory()->create();
-        $bookB = Book::factory()->create();
+        $bookAId = random_int(100000, 999999);
+        $bookBId = random_int(100000, 999999);
 
-        $this->assertTrue($service->addBookToQueue((string) $user->id, (string) $bookA->id));
-        $this->assertTrue($service->addBookToQueue((string) $user->id, (string) $bookB->id));
+        $this->assertTrue($service->addBookToQueue((string) $user->id, (string) $bookAId));
+        $this->assertTrue($service->addBookToQueue((string) $user->id, (string) $bookBId));
 
         $this->assertSame([], $service->getBookQueue('999999'));
         $this->assertCount(2, UserBookStatus::query()->where('user_id', $user->id)->where('status', 'queue')->get());
 
-        $this->assertTrue($service->updateBookQueue((string) $user->id, [(string) $bookB->id]));
+        $this->assertTrue($service->updateBookQueue((string) $user->id, [(string) $bookBId]));
         $this->assertCount(1, UserBookStatus::query()->where('user_id', $user->id)->where('status', 'queue')->get());
 
-        $this->assertTrue($service->removeBookFromQueue((string) $user->id, (string) $bookB->id));
+        $this->assertTrue($service->removeBookFromQueue((string) $user->id, (string) $bookBId));
         $this->assertCount(0, UserBookStatus::query()->where('user_id', $user->id)->where('status', 'queue')->get());
     }
 
@@ -44,34 +43,35 @@ class UserLibraryStateServiceTest extends TestCase
     {
         $service = new UserLibraryStateService();
         $user = User::factory()->create();
-        $book = Book::factory()->create();
+        $title = 'Sample';
+        $author = 'Test Author';
 
         $bookmarkId = $service->createBookmark([
             'user_id' => $user->id,
-            'book_id' => $book->id,
-            'title' => 'Sample',
+            'title' => $title,
+            'author' => $author,
             'chapter' => '1',
             'position' => 120,
             'notes' => 'Remember this',
         ]);
 
-        $bookmarks = $service->getBookmarks((string) $user->id, (string) $book->id);
+        $bookmarks = $service->getBookmarks((string) $user->id, $title, $author);
         $this->assertCount(1, $bookmarks);
         $this->assertSame('Remember this', $bookmarks[0]['notes']);
 
-        $bookmark = $service->getBookmark($bookmarkId, (string) $user->id, (string) $book->id);
+        $bookmark = $service->getBookmark($bookmarkId, (string) $user->id, $title, $author);
         $this->assertSame('Sample', $bookmark['title']);
 
         $this->assertTrue($service->updateBookmark($bookmarkId, ['notes' => 'Updated note']));
         $this->assertSame('Updated note', Bookmark::query()->findOrFail($bookmarkId)->notes);
 
-        $this->assertTrue($service->deleteBookmark($bookmarkId, (string) $user->id, (string) $book->id));
+        $this->assertTrue($service->deleteBookmark($bookmarkId, (string) $user->id, $title, $author));
         $this->assertSoftDeleted('bookmarks', ['id' => $bookmarkId]);
 
         $secondBookmarkId = $service->createBookmark([
             'user_id' => $user->id,
-            'book_id' => $book->id,
             'title' => 'Second',
+            'author' => $author,
             'chapter' => '2',
             'position' => 240,
         ]);
@@ -85,27 +85,27 @@ class UserLibraryStateServiceTest extends TestCase
     {
         $service = new UserLibraryStateService();
         $user = User::factory()->create();
-        $book = Book::factory()->create();
+        $bookId = random_int(100000, 999999);
 
         $externalReadId = $service->createExternalRead([
             'user_id' => $user->id,
-            'book_id' => $book->id,
+            'book_id' => $bookId,
             'origin' => 'external',
             'source' => 'Libby',
             'note' => 'Borrowed copy',
         ]);
 
-        $reads = $service->getExternalReads((string) $user->id, (string) $book->id);
+        $reads = $service->getExternalReads((string) $user->id, (string) $bookId);
         $this->assertCount(1, $reads);
         $this->assertSame('Libby', $reads[0]['source']);
 
-        $entry = $service->getExternalRead($externalReadId, (string) $user->id, (string) $book->id);
+        $entry = $service->getExternalRead($externalReadId, (string) $user->id, (string) $bookId);
         $this->assertSame('Borrowed copy', $entry['note']);
 
         $this->assertTrue($service->updateExternalRead($externalReadId, ['note' => 'Finished elsewhere']));
         $this->assertSame('Finished elsewhere', ExternalRead::query()->findOrFail($externalReadId)->note);
 
-        $this->assertTrue($service->deleteExternalRead($externalReadId, (string) $user->id, (string) $book->id));
+        $this->assertTrue($service->deleteExternalRead($externalReadId, (string) $user->id, (string) $bookId));
         $this->assertDatabaseMissing('external_reads', ['id' => $externalReadId]);
     }
 }

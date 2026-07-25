@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api;
 
-use App\Models\Book;
 use App\Models\BookPosition;
 use App\Models\ListeningEvent;
 use Illuminate\Support\Str;
 
 class StatisticsStreakTest extends ApiTestCase
 {
-    private function createSessionEndEvent(string $listeningDate, ?int $bookId = null): ListeningEvent
+    private function createSessionEndEvent(string $listeningDate, ?string $title = null, ?string $author = null): ListeningEvent
     {
         $timestampMs = \Carbon\Carbon::parse($listeningDate)->setTime(12, 0)->getTimestampMs();
 
         return ListeningEvent::create([
             'id'           => (string) Str::uuid(),
             'user_id'      => $this->user->id,
-            'book_id'      => $bookId ?? Book::factory()->create()->id,
+            'title'        => $title ?? 'Book ' . random_int(100000, 999999),
+            'author'       => $author ?? 'Test Author',
             'event_type'   => 'SESSION_END',
             'timestamp_ms' => $timestampMs,
             'position_ms'  => 0,
@@ -85,11 +85,10 @@ class StatisticsStreakTest extends ApiTestCase
         // Regression test: the modern client finish path (BOOK_FINISH -> PositionMaterializer)
         // writes to book_positions, not book_progress/user_book_status. The overview endpoint
         // must count these or real finishes go missing from the user's stats.
-        $book = Book::factory()->create();
-
         BookPosition::create([
             'user_id'                 => $this->user->id,
-            'book_id'                 => $book->id,
+            'title'                   => 'Project Hail Mary',
+            'author'                  => 'Andy Weir',
             'device_id'               => 'streak-device',
             'position_ms'             => 7_200_000,
             'progress_percentage'     => 100,

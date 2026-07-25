@@ -89,7 +89,8 @@ class CloseOrphanedSessions extends Command
             $windowEnd = $start->timestamp_ms + self::MAX_SESSION_WINDOW_MS;
 
             $bookEvents = ListeningEvent::where('user_id', $userId)
-                ->where('book_id', $start->book_id)
+                ->where('title', $start->title)
+                ->where('author', $start->author)
                 ->where('timestamp_ms', '>', $start->timestamp_ms)
                 ->where('timestamp_ms', '<=', $windowEnd)
                 ->orderBy('timestamp_ms')
@@ -132,7 +133,8 @@ class CloseOrphanedSessions extends Command
                 ListeningEvent::create([
                     'id' => Str::uuid()->toString(),
                     'user_id' => $userId,
-                    'book_id' => $start->book_id,
+                    'title' => $start->title,
+                    'author' => $start->author,
                     'event_type' => 'SESSION_END',
                     'timestamp_ms' => $endMs,
                     'position_ms' => $endPositionMs,

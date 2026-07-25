@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\HealthCheckService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * API Health Check Controller
@@ -16,6 +14,13 @@ use Illuminate\Support\Facades\Schema;
  */
 class ApiHealthController extends Controller
 {
+    protected HealthCheckService $healthCheckService;
+
+    public function __construct(HealthCheckService $healthCheckService)
+    {
+        $this->healthCheckService = $healthCheckService;
+    }
+
     /**
      * Basic health check - verifies API is responding
      */
@@ -43,13 +48,13 @@ class ApiHealthController extends Controller
         $allPassed = true;
 
         // Check 1: Database connectivity
-        $checks['database'] = $this->checkDatabase();
+        $checks['database'] = $this->healthCheckService->checkDatabase();
         if (!$checks['database']['passed']) {
             $allPassed = false;
         }
 
         // Check 2: Data availability across live tables
-        $checks['data_availability'] = $this->checkDataAvailability();
+        $checks['data_availability'] = $this->healthCheckService->checkDataAvailability();
         if (!$checks['data_availability']['passed']) {
             $allPassed = false;
         }
@@ -80,13 +85,13 @@ class ApiHealthController extends Controller
 
         $tables = [
             'users' => ['id', 'email', 'role'],
-            'listening_statistics' => ['id', 'user_id', 'book_id'],
+            'listening_statistics' => ['id', 'user_id', 'title', 'author'],
             'bookmarks' => ['id', 'user_id'],
             'devices' => ['device_id', 'user_id'],
         ];
 
         foreach ($tables as $table => $requiredColumns) {
-            $validations[$table] = $this->validateTableSchema($table, $requiredColumns);
+            $validations[$table] = $this->healthCheckService->validateTableSchema($table, $requiredColumns);
             if (!$validations[$table]['passed']) {
                 $allPassed = false;
             }
@@ -155,94 +160,5 @@ class ApiHealthController extends Controller
         ];
 
         return array_filter($paths);
-    }
-
-    /**
-     * Check database connectivity
-     */
-    protected function checkDatabase(): array
-    {
-        try {
-            DB::connection()->getPdo();
-
-            return [
-                'passed' => true,
-                'message' => 'Database connection successful',
-            ];
-        } catch (\Exception $e) {
-            Log::error('Health check: Database connection failed', ['error' => $e->getMessage()]);
-            return [
-                'passed' => false,
-                'message' => 'Database connection failed',
-                'error' => $e->getMessage(),
-            ];
-        }
-    }
-
-    /**
-     * Check that the live sync tables are reachable and report their row counts
-     */
-    protected function checkDataAvailability(): array
-    {
-        try {
-            $counts = [
-                'users' => DB::table('users')->count(),
-                'listening_statistics' => DB::table('listening_statistics')->count(),
-                'bookmarks' => DB::table('bookmarks')->count(),
-                'devices' => DB::table('devices')->count(),
-            ];
-
-            return [
-                'passed' => true,
-                'message' => 'Data availability check completed',
-                'counts' => $counts,
-                'total_records' => array_sum($counts),
-            ];
-        } catch (\Exception $e) {
-            Log::error('Health check: Data availability check failed', ['error' => $e->getMessage()]);
-            return [
-                'passed' => false,
-                'message' => 'Data availability check failed',
-                'error' => $e->getMessage(),
-            ];
-        }
-    }
-
-    /**
-     * Validate that a table exists, is queryable, and has the expected columns
-     *
-     * @param string[] $requiredColumns
-     */
-    protected function validateTableSchema(string $table, array $requiredColumns): array
-    {
-        try {
-            if (!Schema::hasTable($table)) {
-                return [
-                    'passed' => false,
-                    'message' => "Table '{$table}' does not exist",
-                ];
-            }
-
-            $missingColumns = array_values(array_filter(
-                $requiredColumns,
-                fn (string $column): bool => !Schema::hasColumn($table, $column)
-            ));
-
-            $rowCount = DB::table($table)->count();
-
-            return [
-                'passed' => empty($missingColumns),
-                'message' => empty($missingColumns) ? "Table '{$table}' valid" : 'Missing required columns',
-                'missing_columns' => $missingColumns,
-                'row_count' => $rowCount,
-            ];
-        } catch (\Exception $e) {
-            Log::error("Health check: '{$table}' schema validation failed", ['error' => $e->getMessage()]);
-            return [
-                'passed' => false,
-                'message' => 'Table validation failed',
-                'error' => $e->getMessage(),
-            ];
-        }
     }
 }

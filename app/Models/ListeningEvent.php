@@ -10,7 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property string $id
  * @property int $user_id
- * @property int $book_id
+ * @property string $title
+ * @property string $author
  * @property string $event_type
  * @property int $timestamp_ms
  * @property int $position_ms
@@ -51,7 +52,8 @@ class ListeningEvent extends Model
     protected $fillable = [
         'id',
         'user_id',
-        'book_id',
+        'title',
+        'author',
         'event_type',
         'timestamp_ms',
         'position_ms',
@@ -82,13 +84,5 @@ class ListeningEvent extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    /**
-     * Get the book that this event relates to.
-     */
-    public function book(): BelongsTo
-    {
-        return $this->belongsTo(Book::class);
     }
 }

@@ -96,17 +96,19 @@ class StatisticsController extends Controller
 
         $stats = $query->selectRaw('
             SUM(seconds_listened) as total_listening_time_ms,
-            COUNT(DISTINCT book_id) as books_started,
             AVG(seconds_listened) as average_session_duration_ms,
             COUNT(DISTINCT listening_date) as days_with_activity
         ')->first();
+
+        $booksStarted = (clone $query)->select('title', 'author')->distinct()->count();
 
         if ($userId !== null) {
             $booksFinished = $this->getCompletedBookDatesForUser($userId, $startDate)->count();
         } else {
             $booksFinished = $this->completedProgressQuery($userId, $deviceId, $startDate)
-                ->distinct('book_id')
-                ->count('book_id');
+                ->select('title', 'author')
+                ->distinct()
+                ->count();
         }
 
         // Calculate streaks
@@ -123,7 +125,7 @@ class StatisticsController extends Controller
         return response()->json([
             'daily_stats'                 => $dailyStats,
             'total_listening_time_ms'     => ($stats->total_listening_time_ms ?? 0) * 1000,
-            'books_started'               => $stats->books_started ?? 0,
+            'books_started'               => $booksStarted,
             'books_finished'              => $booksFinished,
             'average_session_duration_ms' => ($stats->average_session_duration_ms ?? 0) * 1000,
             'favorite_genres'             => $favoriteGenres,
@@ -163,7 +165,11 @@ class StatisticsController extends Controller
                 'date'              => $date,
                 'listening_time_ms' => $daySessions->sum('seconds_listened') * 1000,
                 'sessions_count'    => $daySessions->count(),
-                'books_listened'    => $daySessions->pluck('book_id')->unique()->values()->all(),
+                'books_listened'    => $daySessions
+                    ->map(static fn (object $session): array => ['title' => $session->title, 'author' => $session->author])
+                    ->unique()
+                    ->values()
+                    ->all(),
             ])
             ->sortKeysDesc()
             ->take($limit)
@@ -276,17 +282,9 @@ class StatisticsController extends Controller
             ->orderBy('timestamp_ms')
             ->get();
 
-        // Lite has no book library — title comes from whatever the client
-        // included in an event's metadata (bookTitle), falling back to a
-        // generic placeholder when no event carried one.
-        $titlesByBookId = $events->groupBy('book_id')->map(
-            fn ($group) => $group->map(fn ($e) => $e->metadata['bookTitle'] ?? null)->filter()->first()
-        );
-        $bookTitles = fn (int $bookId): string => $titlesByBookId->get($bookId) ?? "Book $bookId";
-
         $nowMs = (int) (microtime(true) * 1000);
 
-        $segments = $this->buildDaySegments($events->all(), $bookTitles, $dayStartMs, $dayEndMs, $nowMs);
+        $segments = $this->buildDaySegments($events->all(), $dayStartMs, $dayEndMs, $nowMs);
 
         return response()->json([
             'date'               => $validated['date'],
@@ -312,12 +310,10 @@ class StatisticsController extends Controller
     /**
      * Reconstruct listening segments from raw events, grouped by device.
      *
-     * @param  \App\Models\ListeningEvent[]  $events     Sorted by timestamp_ms ascending
-     * @param  callable(int): string         $bookTitle  Resolver for book IDs → titles
+     * @param  \App\Models\ListeningEvent[]  $events  Sorted by timestamp_ms ascending
      */
     private function buildDaySegments(
         array $events,
-        callable $bookTitle,
         int $dayStartMs,
         int $dayEndMs,
         int $nowMs
@@ -340,14 +336,14 @@ class StatisticsController extends Controller
 
                 if (in_array($type, $openEventTypes, true)) {
                     if ($open !== null) {
-                        $seg = $this->makeSegment($open, $event, $dayStartMs, $bookTitle, true);
+                        $seg = $this->makeSegment($open, $event, $dayStartMs, true);
                         if ($seg !== null && $seg['duration_ms'] >= $minSegmentMs) {
                             $allSegments[] = $seg;
                         }
                     }
                     $open = $event;
                 } elseif ($type === 'CHAPTER_CHANGE' && $open !== null) {
-                    $seg = $this->makeSegment($open, $event, $dayStartMs, $bookTitle, false);
+                    $seg = $this->makeSegment($open, $event, $dayStartMs, false);
                     if ($seg !== null && $seg['duration_ms'] >= $minSegmentMs) {
                         $allSegments[] = $seg;
                     }
@@ -355,7 +351,7 @@ class StatisticsController extends Controller
                     $open = clone $event;
                     $open->event_type = 'PLAY_RESUME';
                 } elseif (in_array($type, $closeEventTypes, true) && $open !== null) {
-                    $seg = $this->makeSegment($open, $event, $dayStartMs, $bookTitle, false);
+                    $seg = $this->makeSegment($open, $event, $dayStartMs, false);
                     if ($seg !== null && $seg['duration_ms'] >= $minSegmentMs) {
                         $allSegments[] = $seg;
                     }
@@ -365,7 +361,7 @@ class StatisticsController extends Controller
 
             if ($open !== null) {
                 $effectiveEnd    = (object) ['timestamp_ms' => min($nowMs, $dayEndMs), 'position_ms' => $open->position_ms];
-                $seg = $this->makeSegment($open, $effectiveEnd, $dayStartMs, $bookTitle, true);
+                $seg = $this->makeSegment($open, $effectiveEnd, $dayStartMs, true);
                 if ($seg !== null && $seg['duration_ms'] >= $minSegmentMs) {
                     $allSegments[] = $seg;
                 }
@@ -381,7 +377,6 @@ class StatisticsController extends Controller
         object $open,
         object $close,
         int $dayStartMs,
-        callable $bookTitle,
         bool $isOrphaned
     ): ?array {
         $startMs = max((int) $open->timestamp_ms, $dayStartMs);
@@ -393,8 +388,8 @@ class StatisticsController extends Controller
         $metadata = is_array($open->metadata ?? null) ? $open->metadata : [];
 
         return [
-            'book_id'           => (int) $open->book_id,
-            'book_title'        => $bookTitle((int) $open->book_id),
+            'title'             => $open->title,
+            'author'            => $open->author,
             'start_ms'          => $startMs,
             'end_ms'            => $endMs,
             'duration_ms'       => $endMs - $startMs,
@@ -426,17 +421,14 @@ class StatisticsController extends Controller
             $weekdays
         );
 
-        // Lite has no book library — title comes from whatever the client
-        // included in an event's metadata (bookTitle), falling back to a
-        // generic placeholder when no event carried one.
-        $books = $sessions->groupBy('book_id')
-            ->map(static function (Collection $bookSessions, int $bookId): array {
+        $books = $sessions->groupBy(fn (object $session): string => $session->title . '|' . $session->author)
+            ->map(static function (Collection $bookSessions): array {
                 $seconds = $bookSessions->sum('seconds_listened');
-                $title = $bookSessions->pluck('book_title')->filter()->first() ?? "Book $bookId";
+                $first   = $bookSessions->first();
 
                 return [
-                    'book_id' => $bookId,
-                    'title' => $title,
+                    'title' => $first->title,
+                    'author' => $first->author,
                     'total_seconds' => $seconds,
                     'total_minutes' => (int) floor($seconds / 60),
                     'session_count' => $bookSessions->count(),
@@ -516,12 +508,12 @@ class StatisticsController extends Controller
     }
 
     /**
-     * @param Collection<int, (object{book_id: int, user_id: int, device_id: string,
+     * @param Collection<int, (object{title: string, author: string, user_id: int, device_id: string,
      *   listening_date: string, seconds_listened: int, session_start: Carbon,
-     *   book_title: mixed, metadata: array{playback_speed: mixed}}&\stdClass)> $sessions
-     * @return Collection<int, (object{book_id: int, user_id: int, device_id: string,
+     *   metadata: array{playback_speed: mixed}}&\stdClass)> $sessions
+     * @return Collection<int, (object{title: string, author: string, user_id: int, device_id: string,
      *   listening_date: string, seconds_listened: int, session_start: Carbon,
-     *   book_title: mixed, metadata: array{playback_speed: mixed}}&\stdClass)>
+     *   metadata: array{playback_speed: mixed}}&\stdClass)>
      */
     private function filterSessionsForTimeline(
         Collection $sessions,
@@ -591,9 +583,8 @@ class StatisticsController extends Controller
     public function reportSession(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'book_id'              => 'nullable|integer',
-            'title'                => 'required_without:book_id|string|max:255',
-            'author'               => 'required_without:book_id|string|max:255',
+            'title'                => 'required|string|max:255',
+            'author'               => 'required|string|max:255',
             'genre'                => 'nullable|string|max:255',
             'session_start'        => 'required|date',
             'session_end'          => 'required|date|after:session_start',
@@ -626,7 +617,8 @@ class StatisticsController extends Controller
         $playbackSpeed = $validated['playback_speed'] ?? 1.0;
 
         $statistic = ListeningStatistic::createSession(
-            $validated['book_id'] ?? null,
+            $validated['title'],
+            $validated['author'],
             $deviceId,
             $secondsListened,
             (int) ($validated['start_position_ms'] / 1000),
@@ -641,8 +633,6 @@ class StatisticsController extends Controller
             $userId !== null ? (string) $userId : null,
             $validated['actual_duration_ms'] ?? 0,
             $validated['events'] ?? [],
-            $validated['title'] ?? null,
-            $validated['author'] ?? null,
             $validated['genre'] ?? null
         );
         // Check for badge achievements after recording the session
@@ -695,9 +685,8 @@ class StatisticsController extends Controller
     {
         try {
             $validated = $request->validate([
-                'book_id'                => 'nullable|integer',
-                'title'                  => 'required_without:book_id|string|max:255',
-                'author'                 => 'required_without:book_id|string|max:255',
+                'title'                  => 'required|string|max:255',
+                'author'                 => 'required|string|max:255',
                 'genre'                  => 'nullable|string|max:255',
                 'device_id'              => 'required|string|max:255',
                 'seconds_listened'       => 'required|integer|min:1',
@@ -716,7 +705,8 @@ class StatisticsController extends Controller
         }
 
         $statistic = ListeningStatistic::createSession(
-            $validated['book_id'] ?? null,
+            $validated['title'],
+            $validated['author'],
             $validated['device_id'],
             $validated['seconds_listened'],
             $validated['start_position_seconds'] ?? null,
@@ -726,8 +716,6 @@ class StatisticsController extends Controller
             $this->stringUserId(Auth::id() ?? $validated['user_id'] ?? null),
             0,
             [],
-            $validated['title'] ?? null,
-            $validated['author'] ?? null,
             $validated['genre'] ?? null
         );
 
@@ -746,7 +734,8 @@ class StatisticsController extends Controller
                 'message' => 'Listening session recorded successfully',
                 'data'    => [
                     'id'                 => $statistic->id,
-                    'book_id'            => $statistic->book_id,
+                    'title'              => $statistic->title,
+                    'author'             => $statistic->author,
                     'device_id'          => $statistic->device_id,
                     'listening_date'     => $statistic->listening_date->toDateString(),
                     'seconds_listened'   => $statistic->seconds_listened,
@@ -785,7 +774,8 @@ class StatisticsController extends Controller
                 'message' => 'Listening session recorded successfully',
                 'data'    => [
                     'id'                 => $statistic->id,
-                    'book_id'            => $statistic->book_id,
+                    'title'              => $statistic->title,
+                    'author'             => $statistic->author,
                     'device_id'          => $statistic->device_id,
                     'listening_date'     => $statistic->listening_date->toDateString(),
                     'seconds_listened'   => $statistic->seconds_listened,
@@ -830,22 +820,28 @@ class StatisticsController extends Controller
 
         $stats = ListeningStatistic::where('device_id', $validated['device_id'])
             ->whereBetween('listening_date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->selectRaw('
-                listening_date,
-                SUM(seconds_listened) as total_seconds,
-                COUNT(DISTINCT book_id) as books_listened,
-                COUNT(*) as session_count
-            ')
-            ->groupBy('listening_date')
-            ->orderBy('listening_date')
-            ->toBase()
+            ->select('listening_date', 'title', 'author', 'seconds_listened')
             ->get();
 
-        $weeklyTotal = $stats->sum('total_seconds');
-        $totalBooks  = ListeningStatistic::where('device_id', $validated['device_id'])
-            ->whereBetween('listening_date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->distinct('book_id')
-            ->count();
+        $bookKey = static fn (object $stat): string => $stat->title . '|' . $stat->author;
+
+        $dailyBreakdown = $stats->groupBy(static fn (ListeningStatistic $stat): string => $stat->listening_date->toDateString())
+            ->map(function (Collection $dayStats, string $date) use ($bookKey): array {
+                $totalSeconds = $dayStats->sum('seconds_listened');
+
+                return [
+                    'date'               => $date,
+                    'total_seconds'      => $totalSeconds,
+                    'books_listened'     => $dayStats->unique($bookKey)->count(),
+                    'session_count'      => $dayStats->count(),
+                    'formatted_duration' => $this->formatSeconds((int) $totalSeconds),
+                ];
+            })
+            ->sortKeys()
+            ->values();
+
+        $weeklyTotal = $stats->sum('seconds_listened');
+        $totalBooks  = $stats->unique($bookKey)->count();
 
         return response()->json([
             'success' => true,
@@ -855,16 +851,7 @@ class StatisticsController extends Controller
                 'total_seconds'            => $weeklyTotal,
                 'total_books'              => $totalBooks,
                 'formatted_total_duration' => $this->formatSeconds((int) $weeklyTotal),
-                'daily_breakdown'          => $stats->map(function (object $stat) {
-                    /** @var \stdClass&object{listening_date: string, total_seconds: int|float, books_listened: int, session_count: int} $stat */
-                    return [
-                        'date'               => $stat->listening_date,
-                        'total_seconds'      => $stat->total_seconds,
-                        'books_listened'     => $stat->books_listened,
-                        'session_count'      => $stat->session_count,
-                        'formatted_duration' => $this->formatSeconds((int) $stat->total_seconds),
-                    ];
-                }),
+                'daily_breakdown'          => $dailyBreakdown,
             ],
         ]);
     }
@@ -872,13 +859,19 @@ class StatisticsController extends Controller
     /**
      * Get book-specific statistics
      */
-    public function getBookStats(Request $request, int $bookId): JsonResponse
+    public function getBookStats(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'title'     => 'required|string|max:255',
+            'author'    => 'required|string|max:255',
             'device_id' => 'nullable|string|max:255',
         ]);
 
-        $stats = ListeningStatistic::getBookStats($bookId, $validated['device_id'] ?? null);
+        $stats = ListeningStatistic::getBookStats(
+            $validated['title'],
+            $validated['author'],
+            $validated['device_id'] ?? null
+        );
 
         return response()->json([
             'success' => true,
@@ -886,8 +879,8 @@ class StatisticsController extends Controller
             // reported at session time; no cover metadata exists.
             'data'    => array_merge($stats, [
                 'book' => [
-                    'id'          => $bookId,
-                    'title'       => $stats['title'] ?? null,
+                    'title'       => $stats['title'],
+                    'author'      => $stats['author'],
                     'cover_image' => null,
                 ],
             ]),
@@ -929,31 +922,39 @@ class StatisticsController extends Controller
             }
         }
 
-        $groupBy = match ($period) {
-            'week'  => 'listening_date',
-            'year'  => 'YEAR(listening_date), MONTH(listening_date)',
-            default => 'listening_date', // month
-        };
-
         $stats = ListeningStatistic::where('device_id', $validated['device_id'])
             ->whereBetween('listening_date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->selectRaw("
-                listening_date,
-                SUM(seconds_listened) as total_seconds,
-                COUNT(DISTINCT book_id) as books_listened,
-                COUNT(*) as session_count,
-                AVG(seconds_listened) as avg_session_duration
-            ")
-            ->groupByRaw($groupBy)
-            ->orderBy('listening_date')
-            ->toBase()
+            ->select('listening_date', 'title', 'author', 'seconds_listened')
             ->get();
 
-        $totalSeconds = $stats->sum('total_seconds');
-        $totalBooks   = ListeningStatistic::where('device_id', $validated['device_id'])
-            ->whereBetween('listening_date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->distinct('book_id')
-            ->count();
+        $bookKey = static fn (object $stat): string => $stat->title . '|' . $stat->author;
+
+        // 'year' periods are bucketed by calendar month; 'week'/'month' periods are bucketed daily.
+        $periodKey = static function (Carbon $listeningDate) use ($period): string {
+            return $period === 'year' ? $listeningDate->format('Y-m') : $listeningDate->toDateString();
+        };
+
+        $trends = $stats->groupBy(fn (ListeningStatistic $stat): string => $periodKey($stat->listening_date))
+            ->map(function (Collection $periodStats, string $key) use ($bookKey): array {
+                $totalSeconds     = $periodStats->sum('seconds_listened');
+                $sessionCount     = $periodStats->count();
+                $avgSessionLength = $sessionCount > 0 ? $totalSeconds / $sessionCount : 0;
+
+                return [
+                    'date'                  => $key,
+                    'total_seconds'         => $totalSeconds,
+                    'books_listened'        => $periodStats->unique($bookKey)->count(),
+                    'session_count'         => $sessionCount,
+                    'avg_session_duration'  => round($avgSessionLength),
+                    'formatted_duration'    => $this->formatSeconds((int) $totalSeconds),
+                    'formatted_avg_session' => $this->formatSeconds((int) round($avgSessionLength)),
+                ];
+            })
+            ->sortKeys()
+            ->values();
+
+        $totalSeconds = $stats->sum('seconds_listened');
+        $totalBooks   = $stats->unique($bookKey)->count();
 
         return response()->json([
             'success' => true,
@@ -964,19 +965,8 @@ class StatisticsController extends Controller
                 'total_seconds'            => $totalSeconds,
                 'total_books'              => $totalBooks,
                 'formatted_total_duration' => $this->formatSeconds((int) $totalSeconds),
-                'average_daily_seconds'    => $stats->isNotEmpty() ? (int) round($totalSeconds / $stats->count()) : 0,
-                'trends'                   => $stats->map(function ($stat) {
-                    /** @var \stdClass $stat */
-                    return [
-                        'date'                  => $stat->listening_date,
-                        'total_seconds'         => $stat->total_seconds,
-                        'books_listened'        => $stat->books_listened,
-                        'session_count'         => $stat->session_count,
-                        'avg_session_duration'  => round($stat->avg_session_duration),
-                        'formatted_duration'    => $this->formatSeconds((int) $stat->total_seconds),
-                        'formatted_avg_session' => $this->formatSeconds((int) round($stat->avg_session_duration)),
-                    ];
-                }),
+                'average_daily_seconds'    => $trends->isNotEmpty() ? (int) round($totalSeconds / $trends->count()) : 0,
+                'trends'                   => $trends,
             ],
         ]);
     }
@@ -994,15 +984,15 @@ class StatisticsController extends Controller
 
         $query = ListeningStatistic::query()
             ->selectRaw('
-                book_id,
-                MAX(title) as title,
+                title,
+                author,
                 SUM(seconds_listened) as total_seconds,
                 COUNT(*) as session_count,
                 COUNT(DISTINCT listening_date) as days_listened,
                 MIN(listening_date) as first_listened,
                 MAX(listening_date) as last_listened
             ')
-            ->groupBy('book_id')
+            ->groupBy('title', 'author')
             ->orderByDesc('total_seconds');
 
         if (isset($validated['device_id'])) {
@@ -1023,12 +1013,11 @@ class StatisticsController extends Controller
             'data'    => $topBooks->map(function ($stat) {
                 /** @var \App\Models\ListeningStatistic $stat */
                 return [
-                    'book_id'            => $stat->book_id,
-                    // Lite has no book library — title comes from whatever the
+                    // Lite has no book library — title/author come from whatever the
                     // client reported at session time; no cover metadata exists.
                     'book'               => [
-                        'id'          => $stat->book_id,
                         'title'       => $stat->title,
+                        'author'      => $stat->author,
                         'cover_image' => null,
                     ],
                     // @phpstan-ignore-next-line
@@ -1075,14 +1064,17 @@ class StatisticsController extends Controller
         $todayQuery = $this->listeningStatsQuery($userId, (string) ($deviceId ?? 'unknown'))
             ->whereDate('listening_date', $today);
 
-        $todaySummary = $todayQuery->selectRaw('SUM(seconds_listened) as total_seconds, COUNT(DISTINCT book_id) as books_listened, COUNT(*) as session_count')
-            ->first();
+        $todayRows = $todayQuery->select('title', 'author', 'seconds_listened')->get();
+        $todayTotalSeconds = (int) $todayRows->sum('seconds_listened');
 
         $todayStats = [
-            'total_seconds' => (int) ($todaySummary->total_seconds ?? 0),
-            'books_listened' => (int) ($todaySummary->books_listened ?? 0),
-            'session_count' => (int) ($todaySummary->session_count ?? 0),
-            'formatted_duration' => $this->formatSeconds((int) ($todaySummary->total_seconds ?? 0)),
+            'total_seconds' => $todayTotalSeconds,
+            'books_listened' => $todayRows->unique(static function (object $row): string {
+                /** @var \App\Models\ListeningStatistic $row */
+                return $row->title . '|' . $row->author;
+            })->count(),
+            'session_count' => $todayRows->count(),
+            'formatted_duration' => $this->formatSeconds($todayTotalSeconds),
         ];
 
         // High-level user stats (from user_book_status)
@@ -1115,13 +1107,14 @@ class StatisticsController extends Controller
         // All-time listening stats
         $query = $this->listeningStatsQuery($userId, (string) ($deviceId ?? 'unknown'));
 
-        $allTimeStats = $query->selectRaw('
+        $allTimeStats = (clone $query)->selectRaw('
                 SUM(seconds_listened) as total_seconds,
-                COUNT(DISTINCT book_id) as books_listened,
                 COUNT(*) as session_count,
                 COUNT(DISTINCT listening_date) as days_listened
             ')
             ->first();
+
+        $allTimeBooksListened = (clone $query)->select('title', 'author')->distinct()->count();
 
         $listeningMinutes = $this->getListeningMinutesBreakdown($userId, (string) ($deviceId ?? 'unknown'));
 
@@ -1137,7 +1130,7 @@ class StatisticsController extends Controller
                 'user_tracking'      => $userStats,
                 'listening_overview' => [
                     'total_seconds'            => $allTimeStats->total_seconds ?? 0,
-                    'total_books'              => $allTimeStats->books_listened ?? 0,
+                    'total_books'              => $allTimeBooksListened,
                     'days_active'              => $allTimeStats->days_listened ?? 0,
                     'formatted_total_duration' => $this->formatSeconds($allTimeStats->total_seconds ?? 0),
                 ],
@@ -1173,7 +1166,7 @@ class StatisticsController extends Controller
     {
         $query = BookProgress::query()
             ->where('completed', true)
-            ->whereNotNull('book_id');
+            ->where('title', '!=', '');
 
         if ($userId !== null) {
             $query->where('user_id', $userId);
@@ -1190,24 +1183,26 @@ class StatisticsController extends Controller
 
     private function getCompletedBookDatesForUser(int $userId, ?Carbon $startDate = null): \Illuminate\Support\Collection
     {
+        $bookKey = fn (?string $title, ?string $author): string => ($title ?? '') . '|' . ($author ?? '');
+
         $statusDates = UserBookStatus::query()
             ->where('user_id', $userId)
             ->where('status', 'completed')
-            ->whereNotNull('book_id')
+            ->whereNotNull('title')
             ->whereNotNull('finished_at')
-            ->get(['book_id', 'finished_at'])
-            ->mapWithKeys(function (UserBookStatus $status): array {
-                return [$status->book_id => Carbon::parse((string) $status->finished_at)];
+            ->get(['title', 'author', 'finished_at'])
+            ->mapWithKeys(function (UserBookStatus $status) use ($bookKey): array {
+                return [$bookKey($status->title, $status->author) => Carbon::parse((string) $status->finished_at)];
             });
 
         $progressDates = BookProgress::query()
             ->where('user_id', $userId)
             ->where('completed', true)
-            ->whereNotNull('book_id')
+            ->where('title', '!=', '')
             ->whereNotNull('completed_at')
-            ->get(['book_id', 'completed_at'])
-            ->mapWithKeys(function (BookProgress $progress): array {
-                return [$progress->book_id => Carbon::parse((string) $progress->completed_at)];
+            ->get(['title', 'author', 'completed_at'])
+            ->mapWithKeys(function (BookProgress $progress) use ($bookKey): array {
+                return [$bookKey($progress->title, $progress->author) => Carbon::parse((string) $progress->completed_at)];
             });
 
         // The modern event-sourced completion path (BOOK_FINISH -> PositionMaterializer) writes
@@ -1216,24 +1211,24 @@ class StatisticsController extends Controller
         $positionDates = BookPosition::query()
             ->where('user_id', $userId)
             ->where('completed', true)
-            ->get(['book_id', 'last_event_timestamp_ms'])
-            ->mapWithKeys(function (BookPosition $position): array {
-                return [$position->book_id => Carbon::createFromTimestampMs((int) $position->last_event_timestamp_ms)];
+            ->get(['title', 'author', 'last_event_timestamp_ms'])
+            ->mapWithKeys(function (BookPosition $position) use ($bookKey): array {
+                return [$bookKey($position->title, $position->author) => Carbon::createFromTimestampMs((int) $position->last_event_timestamp_ms)];
             });
 
         $merged = $statusDates;
 
-        foreach ($progressDates as $bookId => $date) {
-            $existing = $merged->get($bookId);
+        foreach ($progressDates as $key => $date) {
+            $existing = $merged->get($key);
             if (! $existing instanceof Carbon || $date->gt($existing)) {
-                $merged->put($bookId, $date);
+                $merged->put($key, $date);
             }
         }
 
-        foreach ($positionDates as $bookId => $date) {
-            $existing = $merged->get($bookId);
+        foreach ($positionDates as $key => $date) {
+            $existing = $merged->get($key);
             if (! $existing instanceof Carbon || $date->gt($existing)) {
-                $merged->put($bookId, $date);
+                $merged->put($key, $date);
             }
         }
 
@@ -1320,41 +1315,10 @@ class StatisticsController extends Controller
             $query->where('listening_date', '>=', $startDate->toDateString());
         }
 
-        if (ControllerDatabase::getDriverName() === 'sqlite') {
-            $rawStats = $query->selectRaw('
-                listening_date as date,
-                SUM(seconds_listened) * 1000 as listening_time_ms,
-                COUNT(*) as sessions_count
-            ')
-                ->groupBy('listening_date')
-                ->orderByDesc('listening_date')
-                ->limit(30)
-                ->toBase()
-                ->get();
-
-            /** @var \Illuminate\Support\Collection<int, object> $rawStats */
-            return $rawStats->map(function (object $stat) use ($userId, $deviceId) {
-                /** @var \stdClass $stat */
-                $bookIds = $this->listeningStatsQuery($userId, $deviceId)
-                    ->where('listening_date', $stat->date ?? '')
-                    ->distinct('book_id')
-                    ->pluck('book_id')
-                    ->toArray();
-
-                return [
-                    'date'              => (string) ($stat->date ?? ''),
-                    'listening_time_ms' => (int) ($stat->listening_time_ms ?? 0),
-                    'sessions_count'    => (int) ($stat->sessions_count ?? 0),
-                    'books_listened'    => $bookIds,
-                ];
-            })->toArray();
-        }
-
-        $stats = $query->selectRaw('
+        $rawStats = $query->selectRaw('
             listening_date as date,
             SUM(seconds_listened) * 1000 as listening_time_ms,
-            COUNT(*) as sessions_count,
-            JSON_ARRAYAGG(DISTINCT book_id) as books_listened
+            COUNT(*) as sessions_count
         ')
             ->groupBy('listening_date')
             ->orderByDesc('listening_date')
@@ -1362,13 +1326,21 @@ class StatisticsController extends Controller
             ->toBase()
             ->get();
 
-        return $stats->map(function (object $stat) {
-            /** @var \stdClass&object{date: string, listening_time_ms: int|float, sessions_count: int, books_listened: string} $stat */
+        /** @var \Illuminate\Support\Collection<int, object> $rawStats */
+        return $rawStats->map(function (object $stat) use ($userId, $deviceId) {
+            /** @var \stdClass $stat */
+            $booksListened = $this->listeningStatsQuery($userId, $deviceId)
+                ->where('listening_date', $stat->date ?? '')
+                ->select('title', 'author')
+                ->distinct()
+                ->get()
+                ->toArray();
+
             return [
                 'date'              => (string) ($stat->date ?? ''),
                 'listening_time_ms' => (int) ($stat->listening_time_ms ?? 0),
                 'sessions_count'    => (int) ($stat->sessions_count ?? 0),
-                'books_listened'    => json_decode((string) ($stat->books_listened ?? '[]'), true) ?? [],
+                'books_listened'    => $booksListened,
             ];
         })->toArray();
     }
@@ -1410,7 +1382,7 @@ class StatisticsController extends Controller
 
         $sessionStarts = ListeningEvent::where('user_id', $userId)
             ->where('event_type', 'SESSION_START')
-            ->get(['id', 'book_id', 'device_id', 'timestamp_ms']);
+            ->get(['id', 'title', 'author', 'device_id', 'timestamp_ms']);
 
         $maxWindowMs = 4 * 3_600_000;
         $orphanedCount = 0;
@@ -1418,7 +1390,8 @@ class StatisticsController extends Controller
         foreach ($sessionStarts as $start) {
             $windowEnd = $start->timestamp_ms + $maxWindowMs;
             $hasEnd = ListeningEvent::where('user_id', $userId)
-                ->where('book_id', $start->book_id)
+                ->where('title', $start->title)
+                ->where('author', $start->author)
                 ->where('device_id', $start->device_id)
                 ->where('event_type', 'SESSION_END')
                 ->where('timestamp_ms', '>', $start->timestamp_ms)

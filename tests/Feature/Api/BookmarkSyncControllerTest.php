@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\Book;
 use App\Models\Bookmark;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,7 +15,8 @@ class BookmarkSyncControllerTest extends TestCase
 
     protected $user;
     protected $token;
-    protected $book;
+    protected string $bookTitle = 'Project Hail Mary';
+    protected string $bookAuthor = 'Andy Weir';
 
     protected function setUp(): void
     {
@@ -28,7 +28,6 @@ class BookmarkSyncControllerTest extends TestCase
         ]);
 
         $this->token = $this->user->createToken('test-token')->plainTextToken;
-        $this->book = Book::factory()->create();
 
         Sanctum::actingAs($this->user);
     }
@@ -55,13 +54,13 @@ class BookmarkSyncControllerTest extends TestCase
 
         Bookmark::create([
             'user_id' => $this->user->id,
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'string_id' => $stringId,
             'device_id' => 'device-1',
             'device_name' => 'Phone',
             'position_ms' => 1800000,
             'position' => 1800,
-            'title' => 'Test Bookmark',
             'notes' => 'Test notes',
             'is_auto' => false,
         ]);
@@ -85,7 +84,8 @@ class BookmarkSyncControllerTest extends TestCase
 
         $bookmark = Bookmark::create([
             'user_id' => $this->user->id,
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'string_id' => $stringId,
             'device_id' => 'device-1',
             'device_name' => 'Phone',
@@ -113,7 +113,8 @@ class BookmarkSyncControllerTest extends TestCase
 
         $bookmark = Bookmark::create([
             'user_id' => $this->user->id,
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'string_id' => $stringId,
             'device_id' => 'device-1',
             'device_name' => 'Phone',
@@ -141,11 +142,10 @@ class BookmarkSyncControllerTest extends TestCase
 
     public function testShowBookmarksForSpecificBook()
     {
-        $book2 = Book::factory()->create();
-
         Bookmark::create([
             'user_id' => $this->user->id,
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'string_id' => Str::uuid()->toString(),
             'device_id' => 'device-1',
             'device_name' => 'Phone',
@@ -155,7 +155,8 @@ class BookmarkSyncControllerTest extends TestCase
 
         Bookmark::create([
             'user_id' => $this->user->id,
-            'book_id' => $book2->id,
+            'title' => 'A Different Book',
+            'author' => 'A Different Author',
             'string_id' => Str::uuid()->toString(),
             'device_id' => 'device-1',
             'device_name' => 'Phone',
@@ -166,13 +167,17 @@ class BookmarkSyncControllerTest extends TestCase
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
         ])
-            ->getJson("/api/v1/sync/bookmarks/{$this->book->id}");
+            ->getJson('/api/v1/sync/bookmarks/show?' . http_build_query([
+                'title' => $this->bookTitle,
+                'author' => $this->bookAuthor,
+            ]));
 
         $response->assertStatus(200);
 
         $bookmarks = $response->json('bookmarks');
         $this->assertCount(1, $bookmarks);
-        $this->assertEquals($this->book->id, $bookmarks[0]['book_id']);
+        $this->assertEquals($this->bookTitle, $bookmarks[0]['title']);
+        $this->assertEquals($this->bookAuthor, $bookmarks[0]['author']);
     }
 
     public function testStoreBookmarkCreatesNewRecord()
@@ -189,9 +194,9 @@ class BookmarkSyncControllerTest extends TestCase
                 'bookmarks' => [
                     [
                         'string_id' => $stringId,
-                        'book_id' => $this->book->id,
-                        'position_ms' => 1800000,
                         'title' => 'Chapter 5',
+                        'author' => $this->bookAuthor,
+                        'position_ms' => 1800000,
                         'note' => 'Important part',
                         'is_auto' => false,
                         'chapter_number' => 5,
@@ -209,7 +214,8 @@ class BookmarkSyncControllerTest extends TestCase
 
         $this->assertDatabaseHas('bookmarks', [
             'string_id' => $stringId,
-            'book_id' => $this->book->id,
+            'title' => 'Chapter 5',
+            'author' => $this->bookAuthor,
             'device_id' => 'device-1',
             'position_ms' => 1800000,
         ]);
@@ -221,13 +227,13 @@ class BookmarkSyncControllerTest extends TestCase
 
         Bookmark::create([
             'user_id' => $this->user->id,
-            'book_id' => $this->book->id,
+            'title' => 'Old Title',
+            'author' => $this->bookAuthor,
             'string_id' => $stringId,
             'device_id' => 'device-1',
             'device_name' => 'Phone',
             'position_ms' => 1800000,
             'position' => 1800,
-            'title' => 'Old Title',
         ]);
 
         $response = $this->withHeaders([
@@ -240,9 +246,9 @@ class BookmarkSyncControllerTest extends TestCase
                 'bookmarks' => [
                     [
                         'string_id' => $stringId,
-                        'book_id' => $this->book->id,
-                        'position_ms' => 3600000,
                         'title' => 'Updated Title',
+                        'author' => $this->bookAuthor,
+                        'position_ms' => 3600000,
                         'created_at' => now()->toIso8601String(),
                     ],
                 ],
@@ -268,7 +274,8 @@ class BookmarkSyncControllerTest extends TestCase
 
         $bookmark = Bookmark::create([
             'user_id' => $this->user->id,
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'string_id' => $stringId,
             'device_id' => 'device-1',
             'device_name' => 'Phone',
@@ -288,7 +295,8 @@ class BookmarkSyncControllerTest extends TestCase
                 'bookmarks' => [
                     [
                         'string_id' => $stringId,
-                        'book_id' => $this->book->id,
+                        'title' => $this->bookTitle,
+                        'author' => $this->bookAuthor,
                         'position_ms' => 1800000,
                         'created_at' => now()->toIso8601String(),
                     ],
@@ -311,7 +319,8 @@ class BookmarkSyncControllerTest extends TestCase
                 'bookmarks' => [
                     [
                         'string_id' => Str::uuid()->toString(),
-                        'book_id' => $this->book->id,
+                        'title' => $this->bookTitle,
+                        'author' => $this->bookAuthor,
                         'position_ms' => 1800000,
                         'created_at' => now()->toIso8601String(),
                     ],
@@ -343,9 +352,10 @@ class BookmarkSyncControllerTest extends TestCase
     {
         $stringId = Str::uuid()->toString();
 
-        $bookmark = Bookmark::create([
+        Bookmark::create([
             'user_id' => $this->user->id,
-            'book_id' => $this->book->id,
+            'title' => $this->bookTitle,
+            'author' => $this->bookAuthor,
             'string_id' => $stringId,
             'device_id' => 'device-1',
             'device_name' => 'Phone',

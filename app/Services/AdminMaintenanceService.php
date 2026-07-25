@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Book;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
@@ -60,36 +59,6 @@ class AdminMaintenanceService
             return true;
         } catch (\Exception $e) {
             Log::error('MySqlService deleteMessage failed: ' . $e->getMessage());
-
-            return false;
-        }
-    }
-
-    public function deleteBook(string $bookId, bool $deleteFiles = true): bool
-    {
-        try {
-            $book = Book::where('id', $bookId)->first();
-
-            if (!$book) {
-                Log::warning('Book not found for deletion', ['book_id' => $bookId]);
-
-                return false;
-            }
-
-            $book->delete();
-
-            Log::info('Book deleted from database', [
-                'book_id' => $bookId,
-                'delete_files' => $deleteFiles,
-            ]);
-
-            return true;
-        } catch (\Exception $e) {
-            Log::error('Failed to delete book from database', [
-                'book_id' => $bookId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
 
             return false;
         }

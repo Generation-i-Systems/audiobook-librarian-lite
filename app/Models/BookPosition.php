@@ -18,13 +18,15 @@ class BookPosition extends Model
     {
         return $query
             ->where('user_id', $this->getAttribute('user_id'))
-            ->where('book_id', $this->getAttribute('book_id'))
+            ->where('title', $this->getAttribute('title'))
+            ->where('author', $this->getAttribute('author'))
             ->where('device_id', $this->getAttribute('device_id'));
     }
 
     protected $fillable = [
         'user_id',
-        'book_id',
+        'title',
+        'author',
         'device_id',
         'position_ms',
         'progress_percentage',
@@ -46,11 +48,6 @@ class BookPosition extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function book(): BelongsTo
-    {
-        return $this->belongsTo(Book::class);
     }
 
     public function device(): BelongsTo

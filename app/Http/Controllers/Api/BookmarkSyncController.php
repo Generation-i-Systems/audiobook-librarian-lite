@@ -30,42 +30,31 @@ class BookmarkSyncController extends Controller
             });
         }
 
-        if ($request->has('book_id')) {
-            $query->where('book_id', $request->input('book_id'));
+        if ($request->has('title')) {
+            $query->where('title', $request->input('title'))
+                ->where('author', $request->input('author', ''));
         }
 
         $bookmarks = $query->orderBy('created_at', 'desc')->get();
 
-        $formattedBookmarks = $bookmarks->map(function ($bookmark) {
-            return [
-                'string_id' => $bookmark->string_id,
-                'book_id' => $bookmark->book_id,
-                'device_id' => $bookmark->device_id,
-                'device_name' => $bookmark->device_name,
-                'position_ms' => $bookmark->position_ms,
-                'title' => $bookmark->title,
-                'note' => $bookmark->notes,
-                'is_auto' => $bookmark->is_auto ?? false,
-                'chapter_number' => $bookmark->chapter_number,
-                'chapter_title' => $bookmark->chapter_title,
-                'created_at' => $bookmark->created_at?->toIso8601String(),
-                'updated_at' => $bookmark->updated_at?->toIso8601String(),
-                'deleted_at' => $bookmark->deleted_at?->toIso8601String(),
-            ];
-        });
-
         return response()->json([
             'server_timestamp' => now()->toIso8601String(),
-            'bookmarks' => $formattedBookmarks,
+            'bookmarks' => $this->formatBookmarks($bookmarks),
         ]);
     }
 
-    public function show(Request $request, int $bookId): JsonResponse
+    public function show(Request $request): JsonResponse
     {
         $user = auth()->user();
 
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'author' => 'required|string|max:255',
+        ]);
+
         $query = Bookmark::where('user_id', $user->id)
-            ->where('book_id', $bookId);
+            ->where('title', $validated['title'])
+            ->where('author', $validated['author']);
 
         if ($request->boolean('include_deleted', true)) {
             $query->withTrashed();
@@ -73,14 +62,25 @@ class BookmarkSyncController extends Controller
 
         $bookmarks = $query->orderBy('created_at', 'desc')->get();
 
-        $formattedBookmarks = $bookmarks->map(function ($bookmark) {
+        return response()->json([
+            'server_timestamp' => now()->toIso8601String(),
+            'bookmarks' => $this->formatBookmarks($bookmarks),
+        ]);
+    }
+
+    /**
+     * @param \Illuminate\Database\Eloquent\Collection<int, Bookmark> $bookmarks
+     */
+    private function formatBookmarks($bookmarks): \Illuminate\Support\Collection
+    {
+        return $bookmarks->map(function (Bookmark $bookmark) {
             return [
                 'string_id' => $bookmark->string_id,
-                'book_id' => $bookmark->book_id,
+                'title' => $bookmark->title,
+                'author' => $bookmark->author,
                 'device_id' => $bookmark->device_id,
                 'device_name' => $bookmark->device_name,
                 'position_ms' => $bookmark->position_ms,
-                'title' => $bookmark->title,
                 'note' => $bookmark->notes,
                 'is_auto' => $bookmark->is_auto ?? false,
                 'chapter_number' => $bookmark->chapter_number,
@@ -90,11 +90,6 @@ class BookmarkSyncController extends Controller
                 'deleted_at' => $bookmark->deleted_at?->toIso8601String(),
             ];
         });
-
-        return response()->json([
-            'server_timestamp' => now()->toIso8601String(),
-            'bookmarks' => $formattedBookmarks,
-        ]);
     }
 
     private function parseSince(string $value): Carbon
@@ -120,9 +115,9 @@ class BookmarkSyncController extends Controller
             'client_timestamp' => 'required|date',
             'bookmarks' => 'required|array|min:1',
             'bookmarks.*.string_id' => 'required|uuid',
-            'bookmarks.*.book_id' => 'required|integer',
+            'bookmarks.*.title' => 'required|string|max:255',
+            'bookmarks.*.author' => 'required|string|max:255',
             'bookmarks.*.position_ms' => 'required|integer|min:0',
-            'bookmarks.*.title' => 'nullable|string|max:255',
             'bookmarks.*.note' => 'nullable|string',
             'bookmarks.*.is_auto' => 'nullable|boolean',
             'bookmarks.*.chapter_number' => 'nullable|integer',
@@ -145,11 +140,11 @@ class BookmarkSyncController extends Controller
                 }
 
                 $existing->update([
-                    'book_id' => $bm['book_id'],
+                    'title' => $bm['title'],
+                    'author' => $bm['author'],
                     'device_id' => $deviceId,
                     'device_name' => $deviceName,
                     'position_ms' => $bm['position_ms'],
-                    'title' => $bm['title'] ?? null,
                     'notes' => $bm['note'] ?? null,
                     'is_auto' => $bm['is_auto'] ?? false,
                     'chapter_number' => $bm['chapter_number'] ?? null,
@@ -160,13 +155,13 @@ class BookmarkSyncController extends Controller
             } else {
                 Bookmark::create([
                     'user_id' => $user->id,
-                    'book_id' => $bm['book_id'],
+                    'title' => $bm['title'],
+                    'author' => $bm['author'],
                     'string_id' => $bm['string_id'],
                     'device_id' => $deviceId,
                     'device_name' => $deviceName,
                     'position_ms' => $bm['position_ms'],
                     'position' => (int) ($bm['position_ms'] / 1000),
-                    'title' => $bm['title'] ?? null,
                     'notes' => $bm['note'] ?? null,
                     'is_auto' => $bm['is_auto'] ?? false,
                     'chapter_number' => $bm['chapter_number'] ?? null,

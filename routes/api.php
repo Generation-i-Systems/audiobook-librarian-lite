@@ -96,25 +96,25 @@ Route::prefix('v1')->group(function () {
             Route::prefix('sync')->group(function () {
                 // Event Sync Routes
                 Route::post('/events', [EventController::class, 'sync'])->middleware('idempotency');
-                Route::get('/events/book/{bookId}', [EventController::class, 'getBookEvents']);
+                Route::get('/events/book', [EventController::class, 'getBookEvents']);
                 Route::get('/events/stats', [EventController::class, 'getStats']);
 
                 // Position Sync Routes
                 Route::get('/positions', [PositionSyncController::class, 'index']);
-                Route::get('/positions/{bookId}', [PositionSyncController::class, 'show']);
+                Route::get('/positions/show', [PositionSyncController::class, 'show']);
                 Route::post('/positions', [PositionSyncController::class, 'store'])->middleware('idempotency');
 
                 // Bookmark Sync Routes
                 Route::get('/bookmarks', [BookmarkSyncController::class, 'index']);
-                Route::get('/bookmarks/{bookId}', [BookmarkSyncController::class, 'show']);
+                Route::get('/bookmarks/show', [BookmarkSyncController::class, 'show']);
                 Route::post('/bookmarks', [BookmarkSyncController::class, 'store'])->middleware('idempotency');
                 Route::delete('/bookmarks/{stringId}', [BookmarkSyncController::class, 'destroy']);
             });
         });
 
         // Bookmark Routes
-        Route::get('/bookmarks/{book}', [BookmarkApiController::class, 'getBookmarksOpenApi']);
-        Route::post('/bookmarks/{book}', [BookmarkApiController::class, 'createBookmarkOpenApi']);
+        Route::get('/bookmarks', [BookmarkApiController::class, 'getBookmarksOpenApi']);
+        Route::post('/bookmarks', [BookmarkApiController::class, 'createBookmarkOpenApi']);
         Route::delete('/bookmarks/{bookmark}', [BookmarkApiController::class, 'deleteBookmarkById']);
 
         // Reading Stats Routes

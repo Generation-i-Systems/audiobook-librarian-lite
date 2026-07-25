@@ -13,17 +13,20 @@ class EventSyncTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const BOOK_TITLE = 'Project Hail Mary';
+    private const BOOK_AUTHOR = 'Andy Weir';
+
     public function testSyncCreatesNewEvents(): void
     {
         $user = User::factory()->create(['role' => 'library-user']);
-        $book = (object) ['id' => random_int(100000, 999999)];
         $this->actingAs($user, 'api');
 
         $payload = [
             'events' => [
                 [
                     'id' => 'test-event-1',
-                    'bookId' => $book->id,
+                    'bookTitle' => self::BOOK_TITLE,
+                    'bookAuthor' => self::BOOK_AUTHOR,
                     'eventType' => 'SESSION_END',
                     'timestampMs' => 1707945600000,
                     'positionMs' => 1234567,
@@ -53,21 +56,22 @@ class EventSyncTest extends TestCase
         $this->assertDatabaseHas('listening_events', [
             'id' => 'test-event-1',
             'user_id' => $user->id,
-            'book_id' => $book->id,
+            'title' => self::BOOK_TITLE,
+            'author' => self::BOOK_AUTHOR,
         ]);
     }
 
     public function testSyncDeduplicatesEvents(): void
     {
         $user = User::factory()->create(['role' => 'library-user']);
-        $book = (object) ['id' => random_int(100000, 999999)];
         $this->actingAs($user, 'api');
 
         // Create event
         ListeningEvent::create([
             'id' => 'test-event-1',
             'user_id' => $user->id,
-            'book_id' => $book->id,
+            'title' => self::BOOK_TITLE,
+            'author' => self::BOOK_AUTHOR,
             'event_type' => 'SESSION_END',
             'timestamp_ms' => 1707945600000,
             'position_ms' => 1234567,
@@ -83,7 +87,8 @@ class EventSyncTest extends TestCase
             'events' => [
                 [
                     'id' => 'test-event-1',
-                    'bookId' => $book->id,
+                    'bookTitle' => self::BOOK_TITLE,
+                    'bookAuthor' => self::BOOK_AUTHOR,
                     'eventType' => 'SESSION_END',
                     'timestampMs' => 1707945600000,
                     'positionMs' => 1234567,
@@ -110,13 +115,13 @@ class EventSyncTest extends TestCase
     public function testSyncReturnsRemoteEventsFromOtherDevices(): void
     {
         $user = User::factory()->create(['role' => 'library-user']);
-        $book = (object) ['id' => random_int(100000, 999999)];
         $this->actingAs($user, 'api');
 
         ListeningEvent::create([
             'id' => 'remote-event-1',
             'user_id' => $user->id,
-            'book_id' => $book->id,
+            'title' => self::BOOK_TITLE,
+            'author' => self::BOOK_AUTHOR,
             'event_type' => 'SESSION_END',
             'timestamp_ms' => 1707945600000,
             'position_ms' => 5000000,
@@ -164,14 +169,14 @@ class EventSyncTest extends TestCase
     public function testSyncSkipsMigratedEvents(): void
     {
         $user = User::factory()->create(['role' => 'library-user']);
-        $book = (object) ['id' => random_int(100000, 999999)];
         $this->actingAs($user, 'api');
 
         $payload = [
             'events' => [
                 [
                     'id' => 'migrated-event-1',
-                    'bookId' => $book->id,
+                    'bookTitle' => self::BOOK_TITLE,
+                    'bookAuthor' => self::BOOK_AUTHOR,
                     'eventType' => 'SESSION_END',
                     'timestampMs' => 1707945600000,
                     'positionMs' => 1234567,

@@ -51,10 +51,12 @@ class UserActivityService
                 fn ($badges) => $this->mapCategoryBadges($badges, $earnedBadgeIds, $user)
             );
 
-            $listeningEvents = ListeningEvent::where('user_id', $userId)
+            /** @var \Illuminate\Database\Eloquent\Collection<int, ListeningEvent> $allEvents */
+            $allEvents = ListeningEvent::where('user_id', $userId)
                 ->orderBy('timestamp_ms', 'desc')
-                ->get()
-                ->groupBy('book_id');
+                ->get();
+
+            $listeningEvents = $allEvents->groupBy(fn (ListeningEvent $event) => $event->title . '|' . $event->author);
 
             $derivedProgress = $listeningEvents->map(function ($events) {
                 /** @var ListeningEvent $latest */
@@ -72,8 +74,8 @@ class UserActivityService
                     || $percentage >= 95;
 
                 return [
-                    'book_id' => $latest->book_id,
-                    'book_title' => 'Unknown Book',
+                    'book_title' => $latest->title,
+                    'book_author' => $latest->author,
                     'percentage' => (float) $percentage,
                     'last_listened_at' => Carbon::createFromTimestampMs($latest->timestamp_ms),
                     'completed' => $isCompleted,
@@ -82,8 +84,8 @@ class UserActivityService
 
             $derivedStatuses = $derivedProgress->map(function ($item) {
                 return [
-                    'book_id' => $item['book_id'],
                     'book_title' => $item['book_title'],
+                    'book_author' => $item['book_author'],
                     'status' => $item['completed'] ? 'Finished' : 'In Progress',
                     'updated_at' => $item['last_listened_at'],
                 ];

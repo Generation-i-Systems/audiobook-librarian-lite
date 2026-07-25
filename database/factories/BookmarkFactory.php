@@ -28,8 +28,8 @@ class BookmarkFactory extends Factory
     {
         return [
             'user_id' => \App\Models\User::factory(),
-            'book_id' => \App\Models\Book::factory(),
             'title' => $this->faker->sentence(),
+            'author' => $this->faker->name(),
             'chapter' => (string) $this->faker->numberBetween(1, 20),
             'position' => $this->faker->numberBetween(0, 3600),
             'notes' => $this->faker->paragraph(),

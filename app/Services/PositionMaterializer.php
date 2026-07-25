@@ -31,7 +31,8 @@ class PositionMaterializer
         }
 
         $existing = BookPosition::where('user_id', $eventData['user_id'])
-            ->where('book_id', $eventData['book_id'])
+            ->where('title', $eventData['title'])
+            ->where('author', $eventData['author'])
             ->where('device_id', $eventData['device_id'])
             ->first();
 
@@ -60,7 +61,8 @@ class PositionMaterializer
         BookPosition::updateOrCreate(
             [
                 'user_id' => $eventData['user_id'],
-                'book_id' => $eventData['book_id'],
+                'title' => $eventData['title'],
+                'author' => $eventData['author'],
                 'device_id' => $eventData['device_id'],
             ],
             $attributes,

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\Models\Book;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\AdminMaintenanceService;
@@ -38,7 +37,7 @@ class AdminMaintenanceServiceTest extends TestCase
     }
 
     #[Test]
-    public function deleteHelpersRemoveMessagesAndSoftDeleteBooks(): void
+    public function deleteMessageRemovesMessage(): void
     {
         $service = new AdminMaintenanceService();
         $recipient = User::factory()->create();
@@ -46,13 +45,10 @@ class AdminMaintenanceServiceTest extends TestCase
             'recipient_id' => $recipient->id,
             'content' => 'Admin notice',
         ]);
-        $book = Book::factory()->create();
 
         $this->assertTrue($service->deleteMessage((string) $message->id));
         $this->assertDatabaseMissing('messages', ['id' => $message->id]);
 
-        $this->assertTrue($service->deleteBook((string) $book->id, false));
-        $this->assertSoftDeleted('books', ['id' => $book->id]);
-        $this->assertFalse($service->deleteBook('999999', false));
+        $this->assertFalse($service->deleteMessage('999999'));
     }
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api;
 
-use App\Models\Book;
 use App\Models\Device;
 use App\Models\ListeningGoal;
 use App\Models\ListeningStatistic;
@@ -44,11 +43,13 @@ class ListeningGoalControllerTest extends TestCase
             'sort_order' => 1,
         ]);
 
-        $book = Book::factory()->create();
+        $bookTitle = 'Project Hail Mary';
+        $bookAuthor = 'Andy Weir';
 
         UserBookStatus::create([
             'user_id' => $user->id,
-            'book_id' => $book->id,
+            'title' => $bookTitle,
+            'author' => $bookAuthor,
             'playlist_id' => $playlist->id,
             'status' => 'queue',
             'order' => 1,
@@ -66,7 +67,8 @@ class ListeningGoalControllerTest extends TestCase
         ListeningStatistic::create([
             'user_id' => $user->id,
             'device_id' => 'goal-device-a',
-            'book_id' => $book->id,
+            'title' => $bookTitle,
+            'author' => $bookAuthor,
             'listening_date' => now()->toDateString(),
             'seconds_listened' => 1800,
             'session_type' => 'listening',
@@ -75,7 +77,8 @@ class ListeningGoalControllerTest extends TestCase
         ListeningStatistic::create([
             'user_id' => null,
             'device_id' => 'goal-device-b',
-            'book_id' => $book->id,
+            'title' => $bookTitle,
+            'author' => $bookAuthor,
             'listening_date' => now()->toDateString(),
             'seconds_listened' => 1800,
             'session_type' => 'listening',

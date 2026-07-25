@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Book;
 use App\Models\Bookmark;
 use App\Models\ExternalRead;
 use App\Models\User;
@@ -22,7 +21,7 @@ class UserLibraryStateService
                 return [];
             }
 
-            return $user->queuedBooks()->with(['authors', 'narrators', 'genres', 'series'])->get()->toArray();
+            return $user->queuedBooks()->get()->toArray();
         } catch (\Exception $e) {
             Log::error('MySqlService getBookQueue failed: ' . $e->getMessage());
 
@@ -36,12 +35,6 @@ class UserLibraryStateService
             $user = User::find($userId);
 
             if (!$user) {
-                return false;
-            }
-
-            $book = Book::find($bookId);
-
-            if (!$book) {
                 return false;
             }
 
@@ -72,12 +65,6 @@ class UserLibraryStateService
             $user = User::find($userId);
 
             if (!$user) {
-                return false;
-            }
-
-            $book = Book::find($bookId);
-
-            if (!$book) {
                 return false;
             }
 
@@ -140,14 +127,22 @@ class UserLibraryStateService
         }
     }
 
-    public function getBookmarks(string $userId, string $bookId): array
+    public function getBookmarks(string $userId, string $title, string $author): array
     {
-        return Bookmark::where('user_id', $userId)->where('book_id', $bookId)->get()->toArray();
+        return Bookmark::where('user_id', $userId)
+            ->where('title', $title)
+            ->where('author', $author)
+            ->get()
+            ->toArray();
     }
 
-    public function getBookmark(string $bookmarkId, string $userId, string $bookId): ?array
+    public function getBookmark(string $bookmarkId, string $userId, string $title, string $author): ?array
     {
-        $bookmark = Bookmark::where('id', $bookmarkId)->where('user_id', $userId)->where('book_id', $bookId)->first();
+        $bookmark = Bookmark::where('id', $bookmarkId)
+            ->where('user_id', $userId)
+            ->where('title', $title)
+            ->where('author', $author)
+            ->first();
 
         return $bookmark ? $bookmark->toArray() : null;
     }
@@ -166,11 +161,12 @@ class UserLibraryStateService
         return $bookmark->update($data);
     }
 
-    public function deleteBookmark(string $bookmarkId, string $userId, string $bookId): bool
+    public function deleteBookmark(string $bookmarkId, string $userId, string $title, string $author): bool
     {
         $bookmark = Bookmark::where('id', $bookmarkId)
             ->where('user_id', $userId)
-            ->where('book_id', $bookId)
+            ->where('title', $title)
+            ->where('author', $author)
             ->firstOrFail();
 
         return $bookmark->delete();

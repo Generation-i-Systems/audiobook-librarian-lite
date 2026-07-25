@@ -8,7 +8,6 @@ use App\Models\ClientEvent;
 use App\Models\Device;
 use App\Models\ListeningEvent;
 use App\Models\ListeningGoal;
-use App\Models\ListeningStatistic;
 use App\Models\Message;
 use App\Models\User;
 use App\Models\UserBookStatus;
@@ -20,6 +19,14 @@ use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
+/**
+ * Only /api/v1/sync/positions is a routed, live endpoint among what this file
+ * exercises; /statistics/report, /statistics/sessions, and /analytics/event
+ * are unrouted, so tests that hit those endpoints directly were removed.
+ * BadgeService::evaluateUserBadges() itself is live (called from
+ * EventController::sync and PositionSyncController::store), so tests that
+ * call it directly remain.
+ */
 class BadgeSyncIntegrationTest extends TestCase
 {
     use RefreshDatabase;
@@ -67,7 +74,8 @@ class BadgeSyncIntegrationTest extends TestCase
      * writes to.
      */
     protected function createSessionEndEvent(
-        ?int $bookId = null,
+        ?string $title = null,
+        ?string $author = null,
         int $secondsListened = 1800,
         float $playbackSpeed = 1.0,
         ?string $listeningDate = null,
@@ -78,7 +86,8 @@ class BadgeSyncIntegrationTest extends TestCase
         return ListeningEvent::create([
             'id'           => (string) Str::uuid(),
             'user_id'      => $this->user->id,
-            'book_id'      => $bookId ?? random_int(100000, 999999),
+            'title'        => $title ?? 'Book ' . random_int(100000, 999999),
+            'author'       => $author ?? 'Test Author',
             'event_type'   => 'SESSION_END',
             'timestamp_ms' => $timestampMs,
             'position_ms'  => 0,
@@ -114,114 +123,21 @@ class BadgeSyncIntegrationTest extends TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\Test]
-    public function report_session_uses_actual_duration_ms_for_seconds_listened(): void
-    {
-        $book = (object) ['id' => random_int(100000, 999999), 'title' => 'Test Book', 'author' => 'Test Author'];
-
-        $response = $this->withHeaders($this->authHeaders())
-            ->postJson('/api/v1/statistics/report', [
-                'book_id'            => $book->id,
-                'title'              => $book->title,
-                'author'             => $book->author ?? 'Test Author',
-                'session_start'      => '2024-01-01T10:00:00Z',
-                'session_end'        => '2024-01-01T10:30:00Z',
-                'start_position_ms'  => 50000,
-                'end_position_ms'    => 900000,
-                'playback_speed'     => 1.0,
-                'pauses_count'       => 2,
-                'actual_duration_ms' => 120000, // 2 minutes actual listening
-            ]);
-
-        $response->assertStatus(201)
-            ->assertJson(['success' => true]);
-
-        // seconds_listened should be 120 (from actual_duration_ms), NOT 900 (from end_position_ms)
-        $stat = ListeningStatistic::where('book_id', $book->id)->first();
-        $this->assertNotNull($stat);
-        $this->assertEquals(120, $stat->seconds_listened);
-    }
-
-    #[\PHPUnit\Framework\Attributes\Test]
-    public function report_session_falls_back_to_session_duration_when_no_actual_duration(): void
-    {
-        $book = (object) ['id' => random_int(100000, 999999), 'title' => 'Test Book', 'author' => 'Test Author'];
-
-        $response = $this->withHeaders($this->authHeaders())
-            ->postJson('/api/v1/statistics/report', [
-                'book_id'           => $book->id,
-                'title'             => $book->title,
-                'author'            => $book->author ?? 'Test Author',
-                'session_start'     => '2024-01-01T10:00:00Z',
-                'session_end'       => '2024-01-01T10:05:00Z',
-                'start_position_ms' => 0,
-                'end_position_ms'   => 300000,
-            ]);
-
-        $response->assertStatus(201);
-
-        // Should use session duration (5 minutes = 300 seconds)
-        $stat = ListeningStatistic::where('book_id', $book->id)->first();
-        $this->assertNotNull($stat);
-        $this->assertEquals(300, $stat->seconds_listened);
-    }
-
-    #[\PHPUnit\Framework\Attributes\Test]
-    public function report_session_returns_badges_earned(): void
-    {
-        $book = (object) ['id' => random_int(100000, 999999), 'title' => 'Test Book', 'author' => 'Test Author'];
-
-        // Create a badge that requires 1 session
-        $badge = $this->createTestBadge(['session_count' => 1]);
-
-        // session_count is evaluated from listening_events, not the listening_statistics row
-        // this endpoint itself creates - seed the event-sourced side directly.
-        $this->createSessionEndEvent(bookId: $book->id);
-
-        $response = $this->withHeaders($this->authHeaders())
-            ->postJson('/api/v1/statistics/report', [
-                'book_id'            => $book->id,
-                'title'              => $book->title,
-                'author'             => $book->author ?? 'Test Author',
-                'session_start'      => '2024-01-01T10:00:00Z',
-                'session_end'        => '2024-01-01T10:30:00Z',
-                'start_position_ms'  => 0,
-                'end_position_ms'    => 1800000,
-                'actual_duration_ms' => 1800000,
-            ]);
-
-        $response->assertStatus(201)
-            ->assertJson(['success' => true])
-            ->assertJsonStructure(['badges_earned']);
-
-        $badges = $response->json('badges_earned');
-        $this->assertNotEmpty($badges);
-        $this->assertEquals($badge->id, $badges[0]['id']);
-    }
-
-    #[\PHPUnit\Framework\Attributes\Test]
     public function position_sync_evaluates_badges_and_returns_them(): void
     {
-        $book = (object) ['id' => random_int(100000, 999999), 'title' => 'Test Book', 'author' => 'Test Author'];
-
-        // Create some listening statistics so badge evaluation has data
-        ListeningStatistic::create([
-            'book_id'          => $book->id,
-            'user_id'          => $this->user->id,
-            'device_id'        => (string) $this->user->id,
-            'listening_date'   => now()->toDateString(),
-            'seconds_listened' => 1800,
-            'session_type'     => 'listening',
-        ]);
+        $title = 'Test Book';
+        $author = 'Test Author';
 
         // Create a badge with criteria that should be met
-        $badge = $this->createTestBadge(['session_count' => 1]);
+        $this->createTestBadge(['session_count' => 1]);
 
         $response = $this->withHeaders($this->authHeaders())
             ->postJson('/api/v1/sync/positions', [
                 'client_timestamp' => now()->toIso8601String(),
                 'positions'        => [
                     [
-                        'book_id'              => $book->id,
+                        'title'                => $title,
+                        'author'               => $author,
                         'position_ms'          => 900000,
                         'progress_percentage'  => 50.0,
                         'current_chapter'      => 3,
@@ -264,30 +180,6 @@ class BadgeSyncIntegrationTest extends TestCase
         $this->assertNotNull($message, 'A badge_earned message should be created');
         $this->assertStringContainsString($badge->name, $message->content);
         $this->assertEquals($badge->id, $message->payload['badge_id']);
-    }
-
-    #[\PHPUnit\Framework\Attributes\Test]
-    public function record_session_stores_auth_user_id(): void
-    {
-        $book = (object) ['id' => random_int(100000, 999999), 'title' => 'Test Book', 'author' => 'Test Author'];
-
-        $response = $this->withHeaders($this->authHeaders())
-            ->postJson('/api/v1/statistics/sessions', [
-                'book_id'                => $book->id,
-                'device_id'              => $this->deviceId,
-                'seconds_listened'       => 1800,
-                'start_position_seconds' => 0,
-                'end_position_seconds'   => 1800,
-                'session_type'           => 'listening',
-            ]);
-
-        $response->assertStatus(201)
-            ->assertJson(['success' => true]);
-
-        // Verify that user_id is stored as Auth::id() for badge evaluation
-        $stat = ListeningStatistic::where('book_id', $book->id)->first();
-        $this->assertNotNull($stat);
-        $this->assertEquals($this->user->id, $stat->user_id);
     }
 
     #[\PHPUnit\Framework\Attributes\Test]
@@ -334,32 +226,11 @@ class BadgeSyncIntegrationTest extends TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\Test]
-    public function analytics_endpoint_triggers_badge_evaluation(): void
-    {
-        Cache::flush();
-
-        $badge = $this->createTestBadge(['action_drive_mode_activated' => 1], 'exploration');
-
-        $response = $this->withHeaders($this->authHeaders())
-            ->postJson('/api/v1/analytics/event', [
-                'event_type' => 'drive_mode_activated',
-                'timestamp'  => now()->getTimestampMs(),
-                'metadata'   => [],
-            ]);
-
-        $response->assertStatus(201)
-            ->assertJsonStructure(['badges_earned']);
-
-        $this->assertNotEmpty($response->json('badges_earned'), 'Badge should be earned from analytics event');
-        $this->assertEquals($badge->name, $response->json('badges_earned.0.badge_name'));
-    }
-
-    #[\PHPUnit\Framework\Attributes\Test]
     public function multiple_action_events_count_correctly(): void
     {
         Cache::flush();
 
-        $badge = $this->createTestBadge(['action_bookmark_created' => 3], 'discovery');
+        $this->createTestBadge(['action_bookmark_created' => 3], 'discovery');
 
         for ($i = 0; $i < 3; $i++) {
             ClientEvent::create([
@@ -464,12 +335,12 @@ class BadgeSyncIntegrationTest extends TestCase
     {
         Cache::flush();
 
-        $book = (object) ['id' => random_int(100000, 999999), 'title' => 'Test Book', 'author' => 'Test Author'];
         $badge = $this->createTestBadge(['library_size' => 1], 'collection');
 
         UserBookStatus::create([
             'user_id' => $this->user->id,
-            'book_id' => $book->id,
+            'title' => 'Test Book',
+            'author' => 'Test Author',
             'status' => 'queue',
             'order' => 1,
         ]);
@@ -486,21 +357,23 @@ class BadgeSyncIntegrationTest extends TestCase
     {
         Cache::flush();
 
-        $book = (object) ['id' => random_int(100000, 999999), 'title' => 'Test Book', 'author' => 'Test Author'];
+        $title = 'Test Book';
+        $author = 'Test Author';
         $badge = $this->createTestBadge(['discovery_rate' => 1], 'discovery');
         $sender = User::factory()->create();
 
         UserRecommendation::create([
             'sender_id' => $sender->id,
             'recipient_id' => $this->user->id,
-            'book_id' => $book->id,
+            'title' => $title,
+            'author' => $author,
             'acknowledged_at' => now(),
         ]);
 
         $badgeService = app(BadgeService::class);
         $this->assertSame([], $badgeService->evaluateUserBadges((string) $this->user->id, $this->deviceId));
 
-        $this->createSessionEndEvent(bookId: $book->id, secondsListened: 1200);
+        $this->createSessionEndEvent(title: $title, author: $author, secondsListened: 1200);
 
         Cache::flush();
         $newBadges = $badgeService->evaluateUserBadges((string) $this->user->id, $this->deviceId);
@@ -516,7 +389,6 @@ class BadgeSyncIntegrationTest extends TestCase
     {
         Cache::flush();
 
-        $book = (object) ['id' => random_int(100000, 999999), 'title' => 'Test Book', 'author' => 'Test Author'];
         $badge = $this->createTestBadge(['books_completed' => 1], 'completion');
         $badgeService = app(BadgeService::class);
 
@@ -524,7 +396,8 @@ class BadgeSyncIntegrationTest extends TestCase
 
         BookProgress::create([
             'user_id' => $this->user->id,
-            'book_id' => $book->id,
+            'title' => 'Test Book',
+            'author' => 'Test Author',
             'device_id' => $this->deviceId,
             'current_position_seconds' => 7200,
             'total_duration_seconds' => 7200,

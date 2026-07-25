@@ -8,7 +8,8 @@ use App\Traits\CamelCaseAttributeAccess;
 
 /**
  * @property int $id
- * @property int|null $book_id
+ * @property string $title
+ * @property string $author
  * @property int|null $client_book_id
  * @property int $user_id
  * @property string|null $device_id
@@ -22,7 +23,6 @@ use App\Traits\CamelCaseAttributeAccess;
  * @property \Illuminate\Support\Carbon|null $completed_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \App\Models\Book|null $book
  * @property-read \App\Models\ClientBook|null $clientBook
  * @mixin \Illuminate\Database\Eloquent\Builder
  * @property-read string $formatted_duration
@@ -30,7 +30,6 @@ use App\Traits\CamelCaseAttributeAccess;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|BookProgress newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|BookProgress newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|BookProgress query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|BookProgress whereBookId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|BookProgress whereCompleted($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|BookProgress whereCompletedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|BookProgress whereCreatedAt($value)
@@ -53,7 +52,8 @@ class BookProgress extends Model
     protected $table = 'book_progress';
 
     protected $fillable = [
-        'book_id',
+        'title',
+        'author',
         'client_book_id',
         'user_id',
         'device_id',
@@ -76,11 +76,6 @@ class BookProgress extends Model
         'completed' => 'boolean',
         'completed_at' => 'datetime',
     ];
-
-    public function book(): BelongsTo
-    {
-        return $this->belongsTo(Book::class);
-    }
 
     public function clientBook(): BelongsTo
     {

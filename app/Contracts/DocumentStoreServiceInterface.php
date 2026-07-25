@@ -192,12 +192,12 @@ interface DocumentStoreServiceInterface
     /**
      * Get all bookmarks for a user and book.
      */
-    public function getBookmarks(string $userId, string $bookId): array;
+    public function getBookmarks(string $userId, string $title, string $author): array;
 
     /**
      * Get a specific bookmark by ID, filtered by user and book.
      */
-    public function getBookmark(string $bookmarkId, string $userId, string $bookId): ?array;
+    public function getBookmark(string $bookmarkId, string $userId, string $title, string $author): ?array;
 
     /**
      * Create a new bookmark.
@@ -214,7 +214,7 @@ interface DocumentStoreServiceInterface
     /**
      * Delete a bookmark.
      */
-    public function deleteBookmark(string $bookmarkId, string $userId, string $bookId): bool;
+    public function deleteBookmark(string $bookmarkId, string $userId, string $title, string $author): bool;
 
     /**
      * Delete a bookmark by ID (without book context).

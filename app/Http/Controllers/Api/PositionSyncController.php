@@ -54,16 +54,11 @@ class PositionSyncController extends Controller
             $query->where('book_positions.updated_at', '>', $this->parseSince((string) $request->input('since')));
         }
 
-        if ($request->has('book_ids')) {
-            $bookIds = explode(',', $request->input('book_ids'));
-            $query->whereIn('book_positions.book_id', $bookIds);
-        }
-
         $allPositions = $query->select('book_positions.*')
             ->orderBy('book_positions.updated_at', 'desc')
             ->get();
 
-        $latestPerBook = $allPositions->groupBy('book_id')->map(fn ($group) => $group->first())->values();
+        $latestPerBook = $allPositions->groupBy(fn ($p) => $p->title . '|' . $p->author)->map(fn ($group) => $group->first())->values();
 
         $devices = Device::where('user_id', $user->id)
             ->whereIn('device_id', $latestPerBook->pluck('device_id')->unique())
@@ -74,7 +69,8 @@ class PositionSyncController extends Controller
             $device = $devices->get($pos->device_id);
 
             return [
-                'book_id' => $pos->book_id,
+                'title' => $pos->title,
+                'author' => $pos->author,
                 'device_id' => $pos->device_id,
                 'device_name' => $device->name ?? 'Unknown Device',
                 'position_ms' => $pos->position_ms,
@@ -105,16 +101,11 @@ class PositionSyncController extends Controller
             $query->where('book_progress.updated_at', '>', $this->parseSince((string) $request->input('since')));
         }
 
-        if ($request->has('book_ids')) {
-            $bookIds = explode(',', $request->input('book_ids'));
-            $query->whereIn('book_progress.book_id', $bookIds);
-        }
-
         $allProgress = $query->select('book_progress.*')
             ->orderBy('book_progress.updated_at', 'desc')
             ->get();
 
-        $latestPerBook = $allProgress->groupBy('book_id')->map(fn ($group) => $group->first())->values();
+        $latestPerBook = $allProgress->groupBy(fn ($p) => $p->title . '|' . $p->author)->map(fn ($group) => $group->first())->values();
 
         $devices = Device::where('user_id', $user->id)
             ->whereIn('device_id', $latestPerBook->pluck('device_id')->unique())
@@ -125,7 +116,8 @@ class PositionSyncController extends Controller
             $device = $devices->get($progress->device_id);
 
             return [
-                'book_id' => $progress->book_id,
+                'title' => $progress->title,
+                'author' => $progress->author,
                 'device_id' => $progress->device_id,
                 'device_name' => $device->name ?? 'Unknown Device',
                 'position_ms' => $progress->current_position_seconds * 1000,
@@ -145,12 +137,18 @@ class PositionSyncController extends Controller
         return Carbon::parse($normalizedValue);
     }
 
-    public function show(Request $request, int $bookId): JsonResponse
+    public function show(Request $request): JsonResponse
     {
         $user = auth()->user();
 
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'author' => 'required|string|max:255',
+        ]);
+
         $progress = BookProgress::where('user_id', $user->id)
-            ->where('book_id', $bookId)
+            ->where('title', $validated['title'])
+            ->where('author', $validated['author'])
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -164,6 +162,8 @@ class PositionSyncController extends Controller
 
             return [
                 'device_id' => $p->device_id,
+                'title' => $p->title,
+                'author' => $p->author,
                 'device_name' => $device->name ?? 'Unknown Device',
                 'position_ms' => $p->current_position_seconds * 1000,
                 'progress_percentage' => (float) $p->progress_percentage,
@@ -173,7 +173,8 @@ class PositionSyncController extends Controller
         });
 
         return response()->json([
-            'book_id' => $bookId,
+            'title' => $validated['title'],
+            'author' => $validated['author'],
             'positions' => $positions,
         ]);
     }
@@ -193,7 +194,8 @@ class PositionSyncController extends Controller
         $validated = $request->validate([
             'client_timestamp' => 'required|date',
             'positions' => 'required|array|min:1',
-            'positions.*.book_id' => 'required|integer',
+            'positions.*.title' => 'required|string|max:255',
+            'positions.*.author' => 'required|string|max:255',
             'positions.*.position_ms' => 'required|integer|min:0',
             'positions.*.progress_percentage' => 'required|numeric|min:0|max:100',
             'positions.*.current_chapter' => 'nullable|integer|min:1',
@@ -208,7 +210,8 @@ class PositionSyncController extends Controller
 
         foreach ($validated['positions'] as $pos) {
             $existingProgress = BookProgress::where('user_id', $user->id)
-                ->where('book_id', $pos['book_id'])
+                ->where('title', $pos['title'])
+                ->where('author', $pos['author'])
                 ->where('device_id', '!=', $deviceId)
                 ->orderBy('updated_at', 'desc')
                 ->first();
@@ -221,7 +224,8 @@ class PositionSyncController extends Controller
                     ->first();
 
                 $conflicts[] = [
-                    'book_id' => $pos['book_id'],
+                    'title' => $pos['title'],
+                    'author' => $pos['author'],
                     'server_position_ms' => $existingProgress->current_position_seconds * 1000,
                     'server_device_id' => $existingProgress->device_id,
                     'server_device_name' => $device->name ?? 'Unknown Device',
@@ -231,7 +235,8 @@ class PositionSyncController extends Controller
 
             BookProgress::updateOrCreate(
                 [
-                    'book_id' => $pos['book_id'],
+                    'title' => $pos['title'],
+                    'author' => $pos['author'],
                     'device_id' => $deviceId,
                     'user_id' => $user->id,
                 ],
@@ -247,9 +252,10 @@ class PositionSyncController extends Controller
             );
 
             $positionMaterializer->materialize([
-                'id' => 'position-sync-' . $pos['book_id'] . '-' . $deviceId . '-' . time(),
+                'id' => 'position-sync-' . md5($pos['title'] . '|' . $pos['author']) . '-' . $deviceId . '-' . time(),
                 'user_id' => $user->id,
-                'book_id' => $pos['book_id'],
+                'title' => $pos['title'],
+                'author' => $pos['author'],
                 'event_type' => 'PLAY_PAUSE',
                 'timestamp_ms' => (int) ($posUpdatedAt->timestamp * 1000),
                 'position_ms' => $pos['position_ms'],

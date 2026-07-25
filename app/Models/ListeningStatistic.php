@@ -3,14 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\CamelCaseAttributeAccess;
 
 /**
  * @property int $id
- * @property int|null $book_id
- * @property string|null $title
- * @property string|null $author
+ * @property string $title
+ * @property string $author
  * @property int|null $user_id
  * @property string $device_id
  * @property \Illuminate\Support\Carbon $listening_date
@@ -28,12 +26,10 @@ use App\Traits\CamelCaseAttributeAccess;
  * @property \Illuminate\Support\Carbon|null $first_listened
  * @property \Illuminate\Support\Carbon|null $last_listened
  * @mixin \Illuminate\Database\Eloquent\Builder
- * @property-read \App\Models\Book|null $book
  * @property-read string $formatted_duration
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ListeningStatistic newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ListeningStatistic newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ListeningStatistic query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|ListeningStatistic whereBookId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ListeningStatistic whereCreatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ListeningStatistic whereDeviceId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ListeningStatistic whereEndPositionSeconds($value)
@@ -54,7 +50,6 @@ class ListeningStatistic extends Model
     use CamelCaseAttributeAccess;
 
     protected $fillable = [
-        'book_id',
         'title',
         'author',
         'genre',
@@ -86,11 +81,6 @@ class ListeningStatistic extends Model
 
     ];
 
-    public function book(): BelongsTo
-    {
-        return $this->belongsTo(Book::class);
-    }
-
     /**
      * Get formatted duration for this session
      */
@@ -114,7 +104,8 @@ class ListeningStatistic extends Model
      * @param array<int, array<string, mixed>> $events
      */
     public static function createSession(
-        ?int $bookId,
+        string $title,
+        string $author,
         string $deviceId,
         int $secondsListened,
         ?int $startPosition = null,
@@ -124,13 +115,10 @@ class ListeningStatistic extends Model
         ?string $userId = null,
         int $actualDurationMs = 0,
         array $events = [],
-        ?string $title = null,
-        ?string $author = null,
         ?string $genre = null
     ): self {
         /** @var self $session */
         $session = self::create([
-            'book_id' => $bookId,
             'title' => $title,
             'author' => $author,
             'genre' => $genre,
@@ -162,17 +150,22 @@ class ListeningStatistic extends Model
             ->whereDate('listening_date', $date)
             ->selectRaw('
                 SUM(seconds_listened) as total_seconds,
-                COUNT(DISTINCT book_id) as books_listened,
                 COUNT(*) as session_count,
                 MIN(session_start) as first_session,
                 MAX(session_end) as last_session
             ')
             ->first();
 
+        $booksListened = self::where('device_id', $deviceId)
+            ->whereDate('listening_date', $date)
+            ->select('title', 'author')
+            ->distinct()
+            ->count();
+
         return [
             'date' => $date,
             'total_seconds' => $stats->total_seconds ?? 0,
-            'books_listened' => $stats->books_listened ?? 0,
+            'books_listened' => $booksListened,
             'session_count' => $stats->session_count ?? 0,
             'first_session' => $stats->first_session,
             'last_session' => $stats->last_session,
@@ -183,16 +176,15 @@ class ListeningStatistic extends Model
     /**
      * Get book listening statistics
      */
-    public static function getBookStats(int $bookId, ?string $deviceId = null): array
+    public static function getBookStats(string $title, string $author, ?string $deviceId = null): array
     {
-        $query = self::where('book_id', $bookId);
+        $query = self::where('title', $title)->where('author', $author);
 
         if ($deviceId) {
             $query->where('device_id', $deviceId);
         }
 
         $stats = $query->selectRaw('
-                MAX(title) as title,
                 SUM(seconds_listened) as total_seconds,
                 COUNT(*) as session_count,
                 MIN(listening_date) as first_listened,
@@ -203,8 +195,8 @@ class ListeningStatistic extends Model
             ->first();
 
         return [
-            'book_id' => $bookId,
-            'title' => $stats->title ?? null,
+            'title' => $title,
+            'author' => $author,
             'total_seconds' => $stats->total_seconds ?? 0,
             'session_count' => $stats->session_count ?? 0,
             'first_listened' => $stats->first_listened,

@@ -16,7 +16,7 @@ use Illuminate\Support\Collection;
  * (clients now sync via EventSyncManager -> EventController::sync() -> listening_events),
  * so streak/listening-time/badge calculations that read `listening_statistics` are reading
  * a table real usage never touches. This service reconstructs session-shaped rows (matching
- * the field names the legacy table used: book_id, listening_date, seconds_listened,
+ * the field names the legacy table used: title, author, listening_date, seconds_listened,
  * session_start, metadata.playback_speed) from SESSION_END events, using each event's own
  * client-reported timestamp_ms and timezone so listening_date reflects when the user actually
  * listened, not when the sync request happened to reach the server.
@@ -24,21 +24,20 @@ use Illuminate\Support\Collection;
 class ListeningActivityService
 {
     /**
-     * @var array<string, Collection<int, (object{book_id: int, user_id: int, device_id: string,
+     * @var array<string, Collection<int, (object{title: string, author: string, user_id: int, device_id: string,
      *   listening_date: string, seconds_listened: int, session_start: Carbon,
-     *   book_title: mixed, metadata: array{playback_speed: mixed}}&\stdClass)>>
+     *   metadata: array{playback_speed: mixed}}&\stdClass)>>
      */
     private array $sessionsCache = [];
 
     /**
      * Get session-shaped listening activity rows for a user, matching another device, or both.
      *
-     * @return Collection<int, (object{book_id: int, user_id: int, device_id: string,
+     * @return Collection<int, (object{title: string, author: string, user_id: int, device_id: string,
      *   listening_date: string, seconds_listened: int, session_start: Carbon,
-     *   book_title: mixed, metadata: array{playback_speed: mixed}}&\stdClass)> listening_date is
+     *   metadata: array{playback_speed: mixed}}&\stdClass)> listening_date is
      *   a Y-m-d string local to the event's own timezone; session_start is the same instant as a
-     *   Carbon. book_title is client-supplied (from event metadata) since lite has no book
-     *   library — usually a string, but not guaranteed.
+     *   Carbon.
      */
     public function getSessions(int|string|null $userId, ?string $deviceId = null): Collection
     {
@@ -76,11 +75,11 @@ class ListeningActivityService
         // The client can sync the same logical session more than once (retry after a timed-out
         // sync response, etc.), each time with a new client-generated UUID `id` - the server has
         // no way to detect that at write time since `id` is the dedup key. Collapse events that
-        // share (user_id, book_id, device_id, timestamp_ms) down to one before summing, or
+        // share (user_id, title, author, device_id, timestamp_ms) down to one before summing, or
         // repeated syncs of one real session inflate totals arbitrarily (seen in production as
         // >24h of "listening" on a single day).
-        $events = $query->get(['book_id', 'user_id', 'device_id', 'timestamp_ms', 'metadata', 'timezone'])
-            ->unique(static fn (ListeningEvent $event): string => "{$event->user_id}|{$event->book_id}|{$event->device_id}|{$event->timestamp_ms}");
+        $events = $query->get(['title', 'author', 'user_id', 'device_id', 'timestamp_ms', 'metadata', 'timezone'])
+            ->unique(static fn (ListeningEvent $event): string => "{$event->user_id}|{$event->title}|{$event->author}|{$event->device_id}|{$event->timestamp_ms}");
 
         $sessions = $events->map(function (ListeningEvent $event): object {
             $localStart = Carbon::createFromTimestampMs((int) $event->timestamp_ms)
@@ -92,13 +91,13 @@ class ListeningActivityService
             );
 
             return (object) [
-                'book_id'          => $event->book_id,
+                'title'            => $event->title,
+                'author'           => $event->author,
                 'user_id'          => $event->user_id,
                 'device_id'        => $event->device_id,
                 'listening_date'   => $localStart->toDateString(),
                 'seconds_listened' => $secondsListened,
                 'session_start'    => $localStart,
-                'book_title'       => data_get($metadata, 'bookTitle'),
                 'metadata'         => [
                     'playback_speed' => data_get($metadata, 'playbackSpeed', 1.0),
                 ],

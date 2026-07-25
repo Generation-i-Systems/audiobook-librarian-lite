@@ -90,65 +90,14 @@
                     <ul class="navbar-nav me-auto">
                         @auth
                             @if(request()->is('admin/*'))
-                                <!-- Admin Links (Show only in admin section) -->
-                                <li class="nav-item">
-                                    <a class="nav-link" style="color:white" href="{{ route('admin.books.index') }}">Books</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" style="color:white" href="{{ route('admin.library-repair.index') }}">Library Repair</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" style="color:white" href="{{ route('admin.series.manage') }}">Manage Series</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" style="color:white"
-                                        href="{{ route('admin.messages.index') }}">Messages</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" style="color:white" href="{{ route('admin.queue.index') }}">Queue</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" style="color:white" href="{{ route('admin.users.index') }}">User
-                                        Management</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" style="color:white" href="{{ route('admin.database') }}">Database Admin</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" style="color:white" href="{{ route('admin.skins.index') }}">Skins</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" style="color:white" href="{{ route('admin.themes.index') }}">Themes</a>
-                                </li>
+                                <!-- Admin Links (Show only in admin section, only if routed) -->
+                                @if (\Illuminate\Support\Facades\Route::has('admin.account_requests.index'))
+                                    <li class="nav-item">
+                                        <a class="nav-link" style="color:white" href="{{ route('admin.account_requests.index') }}">Account Requests</a>
+                                    </li>
+                                @endif
                             @else
-                                <!-- Public Links (Show on public pages) -->
-                                <li class="nav-item">
-                                    <a class="nav-link" style="color:white"
-                                        href="{{ route('books.index') }}">{{ __('Books') }}</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" style="color:white"
-                                        href="{{ route('gallery.skins.index') }}">{{ __('Skins') }}</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" style="color:white"
-                                        href="{{ route('gallery.themes.index') }}">{{ __('Themes') }}</a>
-                                </li>
-                                <li class="nav-item dropdown">
-                                    <a id="libraryDropdown" class="nav-link dropdown-toggle" href="#" role="button"
-                                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre
-                                        style="color:white">
-                                        My Library
-                                    </a>
-                                    <div class="dropdown-menu" aria-labelledby="libraryDropdown">
-                                        <a class="dropdown-item" href="{{ route('my-library.queue') }}">Queue</a>
-                                        <a class="dropdown-item" href="{{ route('my-library.wishlist') }}">Wishlist</a>
-                                        <a class="dropdown-item" href="{{ route('my-library.recommendations') }}">Recommendations</a>
-                                        <div class="dropdown-divider"></div>
-                                        <a class="dropdown-item" href="{{ route('my-library.history') }}">Reading History</a>
-                                        <a class="dropdown-item" href="{{ route('my-library.goals') }}">Reading Goals</a>
-                                    </div>
-                                </li>
+                                <!-- Public Links (Show on public pages, only if routed) -->
                             @endif
                         @endauth
                     </ul>
@@ -178,35 +127,31 @@
                                 </a>
 
                                 <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                                    <a class="dropdown-item" href="{{ route('profile.index') }}">
-                                        {{ __('Profile') }}
-                                    </a>
+                                    @if (\Illuminate\Support\Facades\Route::has('profile.index'))
+                                        <a class="dropdown-item" href="{{ route('profile.index') }}">
+                                            {{ __('Profile') }}
+                                        </a>
+                                    @endif
 
-                                    @if (Auth::user()->is_admin)
-                                        @if(request()->is('admin/*'))
-                                            <form id="user-mode-form" action="{{ route('books.index') }}" method="GET"
-                                                class="d-none"></form>
-                                            <a class="dropdown-item" href="{{ route('books.index') }}"
-                                                onclick="event.preventDefault(); document.getElementById('user-mode-form').submit();">Switch
-                                                to User Mode</a>
-                                        @else
-                                            <form id="admin-mode-form" action="{{ route('admin.books.index') }}" method="GET"
-                                                class="d-none"></form>
-                                            <a class="dropdown-item" href="{{ route('admin.books.index') }}"
-                                                onclick="event.preventDefault(); document.getElementById('admin-mode-form').submit();">Switch
-                                                to Admin Mode</a>
+                                    @if (Auth::user()->is_admin && \Illuminate\Support\Facades\Route::has('admin.account_requests.index'))
+                                        @if(!request()->is('admin/*'))
+                                            <a class="dropdown-item" href="{{ route('admin.account_requests.index') }}">
+                                                Admin
+                                            </a>
                                         @endif
                                     @endif
 
-                                    <a class="dropdown-item" href="{{ route('logout') }}"
-                                        onclick="event.preventDefault();
-                                                 refreshCsrfAndLogout();">
-                                        {{ __('Logout') }}
-                                    </a>
+                                    @if (\Illuminate\Support\Facades\Route::has('logout'))
+                                        <a class="dropdown-item" href="{{ route('logout') }}"
+                                            onclick="event.preventDefault();
+                                                     refreshCsrfAndLogout();">
+                                            {{ __('Logout') }}
+                                        </a>
 
-                                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                                        @csrf
-                                    </form>
+                                        <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                                            @csrf
+                                        </form>
+                                    @endif
                                 </div>
                             </li>
                         @endguest

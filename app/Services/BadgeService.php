@@ -82,9 +82,9 @@ class BadgeService
      * table - the legacy listening_statistics table this used to query is no longer written
      * to by any current client.
      *
-     * @return Collection<int, (object{book_id: int, user_id: int, device_id: string,
+     * @return Collection<int, (object{title: string, author: string, user_id: int, device_id: string,
      *   listening_date: string, seconds_listened: int, session_start: \Carbon\Carbon,
-     *   book_title: mixed, metadata: array{playback_speed: mixed}}&\stdClass)>
+     *   metadata: array{playback_speed: mixed}}&\stdClass)>
      */
     protected function userSessions(string $userId, ?string $deviceId = null): Collection
     {
@@ -106,7 +106,7 @@ class BadgeService
             $allTimeStats = (object) [
                 'total_listening_time' => $sessions->sum('seconds_listened'),
                 'session_count' => $sessions->count(),
-                'books_started' => $sessions->pluck('book_id')->filter()->unique()->count(),
+                'books_started' => $sessions->map(fn ($s) => $s->title . '|' . $s->author)->unique()->count(),
                 'total_listening_days' => $sessions->pluck('listening_date')->unique()->count(),
                 'first_listening_date' => $sortedDates->first(),
                 'last_listening_date' => $sortedDates->last(),
@@ -267,15 +267,13 @@ class BadgeService
     protected function getMeaningfullyEngagedBookIds(string $userId, ?string $deviceId = null, int $minimumSeconds = 600): Collection
     {
         $listenedBookIds = $this->userSessions($userId, $deviceId)
-            ->whereNotNull('book_id')
-            ->groupBy('book_id')
+            ->groupBy(fn ($session) => $session->title . '|' . $session->author)
             ->filter(static fn (Collection $sessions): bool => $sessions->sum('seconds_listened') >= $minimumSeconds)
             ->keys();
 
         return $listenedBookIds
             ->merge($this->getCompletedBookIds($userId, $deviceId))
             ->filter()
-            ->map(static fn ($bookId): int => (int) $bookId)
             ->unique()
             ->values();
     }
@@ -329,7 +327,7 @@ class BadgeService
             foreach ($seriesWithCompleted as $seriesId) {
                 $seriesBookIds = $this->getSeriesBookIds((int) $seriesId);
                 $completedInSeries = $seriesBookIds
-                    ->intersect($completedBookIds->map(fn ($bookId) => (int) $bookId))
+                    ->intersect($completedBookIds)
                     ->count();
 
                 if ($seriesBookIds->isNotEmpty() && $completedInSeries >= $seriesBookIds->count()) {
@@ -368,7 +366,9 @@ class BadgeService
 
         return Review::query()
             ->where('user_id', (int) $userId)
-            ->distinct('book_id')
+            ->select('title', 'author')
+            ->distinct()
+            ->get()
             ->count();
     }
 
@@ -394,14 +394,16 @@ class BadgeService
 
         $statusBookIds = DB::table('user_book_status')
             ->where('user_id', $userId)
-            ->whereNotNull('book_id')
-            ->pluck('book_id');
+            ->whereNotNull('title')
+            ->get(['title', 'author'])
+            ->map(fn ($row) => $row->title . '|' . $row->author);
 
         $positionBookIds = BookPosition::query()
             ->where('user_id', (int) $userId)
-            ->whereNotNull('book_id')
+            ->select('title', 'author')
             ->distinct()
-            ->pluck('book_id');
+            ->get()
+            ->map(fn ($row) => $row->title . '|' . $row->author);
 
         return $statusBookIds
             ->merge($positionBookIds)
@@ -415,7 +417,7 @@ class BadgeService
      */
     protected function getCompletionRate(string $userId, ?string $deviceId = null): int
     {
-        $totalBooks     = $this->userSessions($userId, $deviceId)->pluck('book_id')->filter()->unique()->count();
+        $totalBooks     = $this->userSessions($userId, $deviceId)->map(fn ($s) => $s->title . '|' . $s->author)->unique()->count();
         $completedBooks = $this->getCompletedBookIds($userId, $deviceId)->count();
 
         if ($totalBooks === 0) {
@@ -484,15 +486,14 @@ class BadgeService
     protected function getQuickFinishCount(string $userId, ?string $deviceId = null): int
     {
         $completedDates = $this->getCompletedBookProgressRecords($userId, $deviceId)
-            ->pluck('completed_at', 'book_id');
+            ->pluck('completed_at', 'book_key');
 
         $bookFirstDates = $this->userSessions($userId, $deviceId)
-            ->whereNotNull('book_id')
-            ->groupBy('book_id')
+            ->groupBy(fn ($session) => $session->title . '|' . $session->author)
             ->map(static fn (Collection $sessions): string => $sessions->pluck('listening_date')->sort()->first());
 
-        return $bookFirstDates->filter(function (string $firstDate, int $bookId) use ($completedDates): bool {
-            $completedDate = $completedDates->get($bookId);
+        return $bookFirstDates->filter(function (string $firstDate, string $bookKey) use ($completedDates): bool {
+            $completedDate = $completedDates->get($bookKey);
 
             if ($completedDate === null) {
                 return false;
@@ -505,47 +506,47 @@ class BadgeService
     protected function getCompletedBookIds(string $userId, ?string $deviceId = null): Collection
     {
         return $this->getCompletedBookProgressRecords($userId, $deviceId)
-            ->pluck('book_id')
+            ->pluck('book_key')
             ->filter()
-            ->map(static fn ($bookId): int => (int) $bookId)
             ->unique()
             ->values();
     }
 
     /**
-     * Completed-book records, keyed by book_id to the latest known completion date.
+     * Completed-book records, keyed by "title|author" to the latest known completion date.
      *
      * Unions two data sources: the legacy BookProgress table (still written by
      * ProgressController) and BookPosition (written by PositionMaterializer for the modern
      * event-sourced BOOK_FINISH path used by current clients). Neither source alone reflects
      * all real completions.
      *
-     * @return Collection<int, (object{book_id: int, completed_at: Carbon}&\stdClass)>
+     * @return Collection<int, (object{book_key: string, completed_at: Carbon}&\stdClass)>
      */
     protected function getCompletedBookProgressRecords(string $userId, ?string $deviceId = null): Collection
     {
-        /** @var array<int, Carbon> $completions */
+        /** @var array<string, Carbon> $completions */
         $completions = [];
 
-        foreach ($this->completedBookProgressQuery($userId, $deviceId)->get(['book_id', 'completed_at']) as $progress) {
+        foreach ($this->completedBookProgressQuery($userId, $deviceId)->get(['title', 'author', 'completed_at']) as $progress) {
             /** @var BookProgress $progress */
             if ($progress->completed_at !== null) {
-                $completions[$progress->book_id] = Carbon::parse($progress->completed_at);
+                $completions[$progress->title . '|' . $progress->author] = Carbon::parse($progress->completed_at);
             }
         }
 
-        $positions = $this->completedBookPositionQuery($userId, $deviceId)->get(['book_id', 'last_event_timestamp_ms']);
+        $positions = $this->completedBookPositionQuery($userId, $deviceId)->get(['title', 'author', 'last_event_timestamp_ms']);
         foreach ($positions as $position) {
             /** @var BookPosition $position */
             $date = Carbon::createFromTimestampMs((int) $position->last_event_timestamp_ms);
-            $existing = $completions[$position->book_id] ?? null;
+            $key = $position->title . '|' . $position->author;
+            $existing = $completions[$key] ?? null;
             if ($existing === null || $date->gt($existing)) {
-                $completions[$position->book_id] = $date;
+                $completions[$key] = $date;
             }
         }
 
-        return collect($completions)->map(static fn (Carbon $date, int $bookId): object => (object) [
-            'book_id'      => $bookId,
+        return collect($completions)->map(static fn (Carbon $date, string $bookKey): object => (object) [
+            'book_key'     => $bookKey,
             'completed_at' => $date,
         ])->values();
     }
@@ -556,12 +557,12 @@ class BadgeService
             return BookProgress::query()
                 ->where('user_id', (int) $userId)
                 ->where('completed', true)
-                ->whereNotNull('book_id');
+                ->where('title', '!=', '');
         }
 
         $query = BookProgress::query()
             ->where('completed', true)
-            ->whereNotNull('book_id');
+            ->where('title', '!=', '');
 
         if ($deviceId !== null) {
             $query->where('device_id', $deviceId);
@@ -577,13 +578,11 @@ class BadgeService
         if (is_numeric($userId)) {
             return BookPosition::query()
                 ->where('user_id', (int) $userId)
-                ->where('completed', true)
-                ->whereNotNull('book_id');
+                ->where('completed', true);
         }
 
         $query = BookPosition::query()
-            ->where('completed', true)
-            ->whereNotNull('book_id');
+            ->where('completed', true);
 
         if ($deviceId !== null) {
             $query->where('device_id', $deviceId);
@@ -631,17 +630,19 @@ class BadgeService
             return 0;
         }
 
-        $recommendedBookIds = UserRecommendation::query()
+        $recommendedBookKeys = UserRecommendation::query()
             ->where('recipient_id', (int) $userId)
-            ->distinct('book_id')
-            ->pluck('book_id');
+            ->select('title', 'author')
+            ->distinct()
+            ->get()
+            ->map(fn ($row) => $row->title . '|' . $row->author);
 
-        if ($recommendedBookIds->isEmpty()) {
+        if ($recommendedBookKeys->isEmpty()) {
             return 0;
         }
 
         return $this->getMeaningfullyEngagedBookIds($userId)
-            ->intersect($recommendedBookIds->map(static fn ($bookId): int => (int) $bookId))
+            ->intersect($recommendedBookKeys)
             ->count();
     }
 
@@ -895,11 +896,15 @@ class BadgeService
                     return 0;
                 }
 
-                $bookIds = DB::table('user_book_status')
+                $bookKeys = DB::table('user_book_status')
                     ->where('user_id', $goal->user_id)
                     ->where('playlist_id', $goal->playlist_id)
-                    ->pluck('book_id');
-                $sessions = $sessions->whereIn('book_id', $bookIds);
+                    ->whereNotNull('title')
+                    ->get(['title', 'author'])
+                    ->map(fn ($row) => $row->title . '|' . $row->author);
+                $sessions = $sessions->filter(
+                    fn ($session) => $bookKeys->contains($session->title . '|' . $session->author)
+                );
                 break;
             case 'fiction_hours':
             case 'nonfiction_hours':

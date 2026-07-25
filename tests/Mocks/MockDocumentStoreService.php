@@ -698,12 +698,12 @@ class MockDocumentStoreService implements DocumentStoreServiceInterface
         return $id;
     }
 
-    public function getBookmarks(string $userId, string $bookId): array
+    public function getBookmarks(string $userId, string $title, string $author): array
     {
         return [];
     }
 
-    public function getBookmark(string $bookmarkId, string $userId, string $bookId): ?array
+    public function getBookmark(string $bookmarkId, string $userId, string $title, string $author): ?array
     {
         return null;
     }
@@ -720,7 +720,7 @@ class MockDocumentStoreService implements DocumentStoreServiceInterface
         return true;
     }
 
-    public function deleteBookmark(string $bookmarkId, string $userId, string $bookId): bool
+    public function deleteBookmark(string $bookmarkId, string $userId, string $title, string $author): bool
     {
         return true;
     }

@@ -42,19 +42,20 @@ class StatisticsControllerTest extends TestCase
     }
 
     /**
-     * Lite has no book library — a "book" for these tests is just an opaque
-     * id, not a persisted model.
+     * Lite has no book library — a "book" for these tests is identified by
+     * title/author, not a persisted model.
      */
-    protected function fakeBookId(): int
+    protected function fakeBookTitle(): string
     {
-        return random_int(100000, 999999);
+        return 'Book ' . random_int(100000, 999999);
     }
 
     public function test_overview_aggregates_listening_stats_across_multiple_devices_for_authenticated_user()
     {
         ListeningStatistic::create([
             'user_id' => $this->user->id,
-            'book_id' => $this->fakeBookId(),
+            'title' => $this->fakeBookTitle(),
+            'author' => 'Test Author',
             'device_id' => 'device-a',
             'seconds_listened' => 600,
             'session_type' => 'listening',
@@ -65,7 +66,8 @@ class StatisticsControllerTest extends TestCase
 
         ListeningStatistic::create([
             'user_id' => $this->user->id,
-            'book_id' => $this->fakeBookId(),
+            'title' => $this->fakeBookTitle(),
+            'author' => 'Test Author',
             'device_id' => 'device-b',
             'seconds_listened' => 900,
             'session_type' => 'listening',
@@ -89,11 +91,13 @@ class StatisticsControllerTest extends TestCase
 
     public function test_overview_uses_completed_progress_for_books_finished_instead_of_completed_sessions(): void
     {
-        $bookId = $this->fakeBookId();
+        $title = $this->fakeBookTitle();
+        $author = 'Test Author';
 
         ListeningStatistic::create([
             'user_id' => $this->user->id,
-            'book_id' => $bookId,
+            'title' => $title,
+            'author' => $author,
             'device_id' => 'device-a',
             'seconds_listened' => 1200,
             'session_type' => 'listening',
@@ -104,7 +108,8 @@ class StatisticsControllerTest extends TestCase
 
         BookProgress::create([
             'user_id' => $this->user->id,
-            'book_id' => $bookId,
+            'title' => $title,
+            'author' => $author,
             'device_id' => 'device-a',
             'current_position_seconds' => 7200,
             'total_duration_seconds' => 7200,
@@ -131,7 +136,8 @@ class StatisticsControllerTest extends TestCase
 
         \App\Models\UserBookStatus::create([
             'user_id' => $user->id,
-            'book_id' => $this->fakeBookId(),
+            'title' => $this->fakeBookTitle(),
+            'author' => 'Test Author',
             'status' => 'completed',
             'order' => 0,
             'finished_at' => now()->startOfMonth()->subMonth(),
@@ -139,7 +145,8 @@ class StatisticsControllerTest extends TestCase
 
         \App\Models\UserBookStatus::create([
             'user_id' => $user->id,
-            'book_id' => $this->fakeBookId(),
+            'title' => $this->fakeBookTitle(),
+            'author' => 'Test Author',
             'status' => 'completed',
             'order' => 0,
             'finished_at' => now(),
@@ -165,7 +172,8 @@ class StatisticsControllerTest extends TestCase
 
         BookProgress::create([
             'user_id' => $user->id,
-            'book_id' => $this->fakeBookId(),
+            'title' => $this->fakeBookTitle(),
+            'author' => 'Test Author',
             'device_id' => 'test-device',
             'current_position_seconds' => 3600,
             'total_duration_seconds' => 3600,
