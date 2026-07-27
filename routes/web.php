@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\AccountRequestController;
+use App\Http\Controllers\AccountDeletionCancellationController;
 use App\Http\Controllers\Api\EmailOtpController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +19,12 @@ Route::post('/auth/magic/{token}/continue', [EmailOtpController::class, 'magicCo
 
 Route::post('/auth/otp/request', [EmailOtpController::class, 'request'])
     ->name('auth.otp.request');
+
+Route::get('/account-deletion/cancel/{token}', [AccountDeletionCancellationController::class, 'show'])
+    ->where('token', '[A-Za-z0-9]{64}');
+Route::post('/account-deletion/cancel/{token}', [AccountDeletionCancellationController::class, 'cancel'])
+    ->where('token', '[A-Za-z0-9]{64}');
+Route::get('/account-deletion/cancelled', fn () => view('account-deletion.cancelled'));
 
 Route::get('/', function () {
     return response()->json(['service' => 'AbLibrarian Lite', 'status' => 'ok']);

@@ -66,6 +66,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
 
+        // Account deletion (verify by email OTP, then schedule; cancellable within retention period)
+        Route::post('/account', [AuthController::class, 'requestAccountDeletionVerification']);
+        Route::delete('/account', [AuthController::class, 'deleteAccount']);
+        Route::delete('/auth/account', [AuthController::class, 'deleteAccount']);
+
         // Listening Goals Routes
         Route::prefix('goals/listening')->group(function () {
             Route::get('/', [ListeningGoalController::class, 'index']);

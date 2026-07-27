@@ -198,6 +198,11 @@ class MySqlService implements DocumentStoreServiceInterface, DocumentStatsServic
         return $this->getUserAccountService()->deleteUser($id);
     }
 
+    public function permanentlyDeleteUser(string $id): bool
+    {
+        return $this->getUserAccountService()->permanentlyDeleteUser($id);
+    }
+
     /**
      * Get a user by their email address.
      *
