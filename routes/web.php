@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Http\Controllers\Admin\AccountRequestController;
 use App\Http\Controllers\AccountDeletionCancellationController;
 use App\Http\Controllers\Api\EmailOtpController;
+use App\Http\Controllers\AppConnectController;
+use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Route;
 
 // Magic link OTP web routes (no auth required)
@@ -25,6 +27,9 @@ Route::get('/account-deletion/cancel/{token}', [AccountDeletionCancellationContr
 Route::post('/account-deletion/cancel/{token}', [AccountDeletionCancellationController::class, 'cancel'])
     ->where('token', '[A-Za-z0-9]{64}');
 Route::get('/account-deletion/cancelled', fn () => view('account-deletion.cancelled'));
+
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::get('/app/connect/server', [AppConnectController::class, 'server'])->name('app.connect.server');
 
 Route::get('/', function () {
     return response()->json(['service' => 'AbLibrarian Lite', 'status' => 'ok']);
