@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Device;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -77,6 +78,21 @@ class DeviceController extends Controller
         $device->delete();
 
         return response()->json([], 204);
+    }
+
+    public function registerPushToken(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'push_token' => 'required|string|max:255',
+            'push_platform' => 'required|string|in:android,ios',
+        ]);
+
+        $user = User::findOrFail((int) auth()->user()?->getAuthIdentifier());
+        $user->push_token = $validated['push_token'];
+        $user->push_platform = $validated['push_platform'];
+        $user->save();
+
+        return response()->json(['success' => true]);
     }
 
     public function updateSyncEnabled(Request $request, string $deviceId): JsonResponse

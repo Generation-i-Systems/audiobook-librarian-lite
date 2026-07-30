@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\BookmarkSyncController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\EmailOtpController;
 use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\FriendController;
 use App\Http\Controllers\Api\ListeningGoalController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PositionSyncController;
@@ -85,6 +86,23 @@ Route::prefix('v1')->group(function () {
             Route::get('/user', [BadgeApiController::class, 'userBadges']);
             Route::get('/unnotified', [BadgeApiController::class, 'unnotified']);
             Route::post('/mark-notified', [BadgeApiController::class, 'markNotified']);
+        });
+
+        // Push notification token registration (no real provider wired up yet)
+        Route::put('/push-token', [DeviceController::class, 'registerPushToken']);
+
+        // Friend Group Routes
+        Route::prefix('friends')->group(function () {
+            Route::get('/', [FriendController::class, 'index']);
+            Route::delete('/{userId}', [FriendController::class, 'destroy'])->where('userId', '[0-9]+');
+            Route::post('/qr', [FriendController::class, 'createQrInvite']);
+            Route::post('/qr/{token}/join', [FriendController::class, 'joinViaQr']);
+            Route::post('/invitations', [FriendController::class, 'sendInvitation']);
+            Route::get('/invitations', [FriendController::class, 'listInvitations']);
+            Route::get('/invitations/unshown', [FriendController::class, 'unshownInvitations']);
+            Route::post('/invitations/mark-shown', [FriendController::class, 'markInvitationsShown']);
+            Route::post('/invitations/{invitationId}/accept', [FriendController::class, 'acceptInvitation'])->where('invitationId', '[0-9]+');
+            Route::post('/invitations/{invitationId}/decline', [FriendController::class, 'declineInvitation'])->where('invitationId', '[0-9]+');
         });
 
         // Statistics Routes

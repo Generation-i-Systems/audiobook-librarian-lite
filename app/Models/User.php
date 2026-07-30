@@ -26,6 +26,8 @@ use App\Traits\Auditable;
  * @property bool $is_admin
  * @property string|null $remember_token
  * @property \Illuminate\Support\Carbon|null $deleted_at
+ * @property string|null $push_token
+ * @property string|null $push_platform
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\UserBookStatus> $bookStatuses
  * @property-read int|null $book_statuses_count
  * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $notifications
@@ -109,6 +111,21 @@ class User extends Authenticatable
         'deletion_scheduled_for' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function friendships(): HasMany
+    {
+        return $this->hasMany(Friendship::class);
+    }
+
+    public function sentFriendInvitations(): HasMany
+    {
+        return $this->hasMany(FriendInvitation::class, 'sender_id');
+    }
+
+    public function receivedFriendInvitations(): HasMany
+    {
+        return $this->hasMany(FriendInvitation::class, 'recipient_id');
+    }
 
     public function getIsAdminAttribute(): bool
     {
