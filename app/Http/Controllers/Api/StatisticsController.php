@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\BookPosition;
-use App\Models\BookProgress;
 use App\Models\ListeningEvent;
 use App\Models\ListeningStatistic;
 use App\Models\UserBookStatus;
@@ -16,6 +14,7 @@ use DateTimeZone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Services\BookCompletionService;
 use App\Services\ControllerDatabaseService as ControllerDatabase;
 use App\Services\ListeningActivityService;
 use Illuminate\Support\Collection;
@@ -24,8 +23,10 @@ use Illuminate\Validation\ValidationException;
 
 class StatisticsController extends Controller
 {
-    public function __construct(private readonly ListeningActivityService $listeningActivityService)
-    {
+    public function __construct(
+        private readonly ListeningActivityService $listeningActivityService,
+        private readonly BookCompletionService $bookCompletionService
+    ) {
     }
 
     private function listeningStatsQuery(?int $userId, string $deviceId): \Illuminate\Database\Eloquent\Builder
@@ -103,9 +104,9 @@ class StatisticsController extends Controller
         $booksStarted = (clone $query)->select('title', 'author')->distinct()->count();
 
         if ($userId !== null) {
-            $booksFinished = $this->getCompletedBookDatesForUser($userId, $startDate)->count();
+            $booksFinished = $this->bookCompletionService->getCompletedBookDatesForUser($userId, $startDate)->count();
         } else {
-            $booksFinished = $this->completedProgressQuery($userId, $deviceId, $startDate)
+            $booksFinished = $this->bookCompletionService->completedProgressQuery($userId, $deviceId, $startDate)
                 ->select('title', 'author')
                 ->distinct()
                 ->count();
@@ -1086,7 +1087,7 @@ class StatisticsController extends Controller
         ];
 
         if ($userId) {
-            $completedBookDates = $this->getCompletedBookDatesForUser($userId);
+            $completedBookDates = $this->bookCompletionService->getCompletedBookDatesForUser($userId);
 
             $userStats['total_completed'] = $completedBookDates->count();
             $userStats['completed_this_month'] = $completedBookDates
@@ -1162,83 +1163,6 @@ class StatisticsController extends Controller
         ];
     }
 
-    private function completedProgressQuery(?int $userId, string $deviceId, ?Carbon $startDate = null)
-    {
-        $query = BookProgress::query()
-            ->where('completed', true)
-            ->where('title', '!=', '');
-
-        if ($userId !== null) {
-            $query->where('user_id', $userId);
-        } else {
-            $query->where('device_id', $deviceId);
-        }
-
-        if ($startDate !== null) {
-            $query->where('completed_at', '>=', $startDate);
-        }
-
-        return $query;
-    }
-
-    private function getCompletedBookDatesForUser(int $userId, ?Carbon $startDate = null): \Illuminate\Support\Collection
-    {
-        $bookKey = fn (?string $title, ?string $author): string => ($title ?? '') . '|' . ($author ?? '');
-
-        $statusDates = UserBookStatus::query()
-            ->where('user_id', $userId)
-            ->where('status', 'completed')
-            ->whereNotNull('title')
-            ->whereNotNull('finished_at')
-            ->get(['title', 'author', 'finished_at'])
-            ->mapWithKeys(function (UserBookStatus $status) use ($bookKey): array {
-                return [$bookKey($status->title, $status->author) => Carbon::parse((string) $status->finished_at)];
-            });
-
-        $progressDates = BookProgress::query()
-            ->where('user_id', $userId)
-            ->where('completed', true)
-            ->where('title', '!=', '')
-            ->whereNotNull('completed_at')
-            ->get(['title', 'author', 'completed_at'])
-            ->mapWithKeys(function (BookProgress $progress) use ($bookKey): array {
-                return [$bookKey($progress->title, $progress->author) => Carbon::parse((string) $progress->completed_at)];
-            });
-
-        // The modern event-sourced completion path (BOOK_FINISH -> PositionMaterializer) writes
-        // to book_positions, not book_progress/user_book_status. last_event_timestamp_ms is the
-        // client-reported time of the finishing event.
-        $positionDates = BookPosition::query()
-            ->where('user_id', $userId)
-            ->where('completed', true)
-            ->get(['title', 'author', 'last_event_timestamp_ms'])
-            ->mapWithKeys(function (BookPosition $position) use ($bookKey): array {
-                return [$bookKey($position->title, $position->author) => Carbon::createFromTimestampMs((int) $position->last_event_timestamp_ms)];
-            });
-
-        $merged = $statusDates;
-
-        foreach ($progressDates as $key => $date) {
-            $existing = $merged->get($key);
-            if (! $existing instanceof Carbon || $date->gt($existing)) {
-                $merged->put($key, $date);
-            }
-        }
-
-        foreach ($positionDates as $key => $date) {
-            $existing = $merged->get($key);
-            if (! $existing instanceof Carbon || $date->gt($existing)) {
-                $merged->put($key, $date);
-            }
-        }
-
-        if ($startDate !== null) {
-            return $merged->filter(fn (Carbon $date): bool => $date->gte($startDate));
-        }
-
-        return $merged;
-    }
-
     /**
      * Get reading progress stats by date (finished books per month/year)
      */
@@ -1252,7 +1176,7 @@ class StatisticsController extends Controller
 
         $groupBy = $request->input('group_by', 'month'); // month or year
 
-        $completedBookDates = $this->getCompletedBookDatesForUser($user->id);
+        $completedBookDates = $this->bookCompletionService->getCompletedBookDatesForUser($user->id);
 
         $stats = $completedBookDates->groupBy(function (Carbon $date) use ($groupBy) {
             return $groupBy === 'year' ? $date->format('Y') : $date->format('Y-m');
