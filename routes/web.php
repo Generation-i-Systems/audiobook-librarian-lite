@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\AccountRequestController;
+use App\Http\Controllers\Admin\UserController as AdminUserWebController;
 use App\Http\Controllers\AccountDeletionCancellationController;
 use App\Http\Controllers\Api\EmailOtpController;
 use App\Http\Controllers\AppConnectController;
@@ -41,4 +42,8 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('admin')->name('admin.')->gr
         Route::put('/{account_request}', [AccountRequestController::class, 'update'])->name('update');
         Route::delete('/{account_request}', [AccountRequestController::class, 'destroy'])->name('destroy');
     });
+
+    Route::resource('users', AdminUserWebController::class);
+    Route::post('users/{id}/verify', [AdminUserWebController::class, 'verify'])
+        ->name('users.verify');
 });
