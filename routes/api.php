@@ -152,6 +152,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [AdminUserController::class, 'index']);
             Route::post('/', [AdminUserController::class, 'store']);
             Route::post('/{id}/send-otp', [AdminUserController::class, 'sendOtp']);
+            Route::post('/{id}/send-welcome', [AdminUserController::class, 'sendWelcome']);
             Route::post('/{id}/verify', [AdminUserController::class, 'verify']);
         });
     });
