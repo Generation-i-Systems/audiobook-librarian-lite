@@ -181,26 +181,17 @@ class UserController extends Controller
      */
     public function verify(Request $request, $id)
     {
-        $user = $this->documentStoreService->getUserById($id);
+        $response = app(AdminUserController::class)->verify($request, (string) $id);
+        $data = $response->getData();
 
-        if (!$user) {
-            return back()->with('error', 'User not found.');
+        if ($response->getStatusCode() >= 400) {
+            return back()->with('error', $data->message ?? 'Failed to verify user.');
         }
 
-        if (($user['role'] ?? '') !== 'unverified') {
-            return back()->with('info', 'User is already verified.');
+        if (!isset($data->user)) {
+            return back()->with('info', $data->message ?? 'User is already verified.');
         }
 
-        $role = $request->input('role', 'user');
-        if (!in_array($role, ['user', 'library-user', 'librivox-user', 'hybrid-user', 'admin', 'super-admin'], true)) {
-            return back()->with('error', 'Invalid role selected.');
-        }
-
-        $this->documentStoreService->updateUser($id, [
-            'role' => $role,
-            'email_verified_at' => now()
-        ]);
-
-        return back()->with('success', 'User verified successfully.');
+        return back()->with('success', $data->message ?? 'User verified successfully.');
     }
 }
