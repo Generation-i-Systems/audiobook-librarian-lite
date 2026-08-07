@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\AdminGroupController;
+use App\Http\Controllers\Api\BookTagController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\ApiCapabilitiesController;
 use App\Http\Controllers\Api\ApiHealthController;
@@ -78,6 +79,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/account', [AuthController::class, 'requestAccountDeletionVerification']);
         Route::delete('/account', [AuthController::class, 'deleteAccount']);
         Route::delete('/auth/account', [AuthController::class, 'deleteAccount']);
+
+        // Book Tag Routes (keyed by title+author — lite has no book table)
+        Route::get('/books/tags', [BookTagController::class, 'show']);
+        Route::put('/books/tags', [BookTagController::class, 'update']);
+        Route::get('/tags/popular', [BookTagController::class, 'popular']);
 
         // Listening Goals Routes
         Route::prefix('goals/listening')->group(function () {
