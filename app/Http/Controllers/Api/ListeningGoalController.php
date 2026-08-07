@@ -20,6 +20,9 @@ class ListeningGoalController extends Controller
     {
     }
 
+    /** No series concept exists on lite (listening_statistics has no series column). */
+    private const METRICS = 'total_hours,genre_hours,playlist_hours,fiction_hours,nonfiction_hours,books_finished,author_hours,book_hours';
+
     /** GET /goals/listening — list all active listening goals with current progress */
     public function index(): JsonResponse
     {
@@ -38,10 +41,13 @@ class ListeningGoalController extends Controller
     {
         $validated = $request->validate([
             'period_type'    => 'required|string|in:day,week,month,year,custom',
-            'metric'         => 'required|string|in:total_hours,genre_hours,playlist_hours,fiction_hours,nonfiction_hours,books_finished',
+            'metric'         => 'required|string|in:' . self::METRICS,
             'target_minutes' => 'required|integer|min:1|max:14400',
             'genre_id'       => 'nullable|integer|exists:genres,id',
             'playlist_id'    => 'nullable|integer|exists:playlists,id',
+            'author_name'    => 'nullable|string|max:255',
+            'book_title'     => 'nullable|string|max:255',
+            'book_author'    => 'nullable|string|max:255',
             'start_date'     => 'required_if:period_type,custom|nullable|date',
             'end_date'       => 'required_if:period_type,custom|nullable|date|after_or_equal:start_date',
         ]);
@@ -56,6 +62,9 @@ class ListeningGoalController extends Controller
             'target_minutes' => $validated['target_minutes'],
             'genre_id'       => $validated['genre_id'] ?? null,
             'playlist_id'    => $validated['playlist_id'] ?? null,
+            'author_name'    => $validated['author_name'] ?? null,
+            'book_title'     => $validated['book_title'] ?? null,
+            'book_author'    => $validated['book_author'] ?? null,
             'start_date'     => $validated['start_date'] ?? null,
             'end_date'       => $validated['end_date'] ?? null,
             'is_active'      => true,
@@ -72,10 +81,13 @@ class ListeningGoalController extends Controller
 
         $validated = $request->validate([
             'period_type'    => 'sometimes|string|in:day,week,month,year,custom',
-            'metric'         => 'sometimes|string|in:total_hours,genre_hours,playlist_hours,fiction_hours,nonfiction_hours,books_finished',
+            'metric'         => 'sometimes|string|in:' . self::METRICS,
             'target_minutes' => 'sometimes|integer|min:1|max:14400',
             'genre_id'       => 'nullable|integer|exists:genres,id',
             'playlist_id'    => 'nullable|integer|exists:playlists,id',
+            'author_name'    => 'nullable|string|max:255',
+            'book_title'     => 'nullable|string|max:255',
+            'book_author'    => 'nullable|string|max:255',
             'start_date'     => 'sometimes|nullable|date',
             'end_date'       => 'sometimes|nullable|date|after_or_equal:start_date',
             'is_active'      => 'sometimes|boolean',
@@ -223,6 +235,13 @@ class ListeningGoalController extends Controller
                         ->where('user_book_status.playlist_id', $goal->playlist_id);
                 });
                 break;
+            case 'author_hours':
+                $query->where('listening_statistics.author', $goal->author_name ?? '__no_match__');
+                break;
+            case 'book_hours':
+                $query->where('listening_statistics.title', $goal->book_title ?? '__no_match__')
+                    ->where('listening_statistics.author', $goal->book_author ?? '__no_match__');
+                break;
         }
 
         return $query;
@@ -298,6 +317,9 @@ class ListeningGoalController extends Controller
             'genre_name'       => $goal->genre?->name,
             'playlist_id'      => $goal->playlist_id,
             'playlist_name'    => $goal->playlist?->name,
+            'author_name'      => $goal->author_name,
+            'book_title'       => $goal->book_title,
+            'book_author'      => $goal->book_author,
             'start_date'       => $periodStart->toDateString(),
             'end_date'         => $periodEnd->toDateString(),
             'elapsed_percent'  => $this->elapsedPercent($periodStart, $periodEnd),

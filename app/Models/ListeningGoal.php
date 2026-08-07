@@ -10,10 +10,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $user_id
  * @property string $period_type  day|week|month|year|custom
- * @property string $metric       total_hours|genre_hours|playlist_hours|fiction_hours|nonfiction_hours|books_finished
+ * @property string $metric       total_hours|genre_hours|playlist_hours|fiction_hours|nonfiction_hours|books_finished|author_hours|book_hours
  * @property int $target_minutes
  * @property int|null $genre_id
  * @property int|null $playlist_id
+ * @property string|null $author_name
+ * @property string|null $book_title
+ * @property string|null $book_author
  * @property \Illuminate\Support\Carbon|null $start_date
  * @property \Illuminate\Support\Carbon|null $end_date
  * @property bool $is_active
@@ -29,7 +32,8 @@ class ListeningGoal extends Model
 
     protected $fillable = [
         'user_id', 'period_type', 'metric', 'target_minutes',
-        'genre_id', 'playlist_id', 'start_date', 'end_date', 'is_active',
+        'genre_id', 'playlist_id', 'author_name', 'book_title', 'book_author',
+        'start_date', 'end_date', 'is_active',
     ];
 
     protected $casts = [
