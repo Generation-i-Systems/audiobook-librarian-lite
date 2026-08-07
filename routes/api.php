@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\AdminGroupController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\ApiCapabilitiesController;
 use App\Http\Controllers\Api\ApiHealthController;
@@ -57,7 +58,13 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware(['api.auth', 'standard'])->group(function () {
         Route::get('/user', function (Request $request) {
-            return $request->user();
+            $user = $request->user();
+            $user->setAttribute(
+                'groups',
+                $user->groups()->get(['groups.id', 'groups.name'])
+            );
+
+            return $user;
         });
 
         // Authenticated: set initial password
@@ -146,6 +153,15 @@ Route::prefix('v1')->group(function () {
         Route::get('/reading-stats/daily', [ReadingStatsApiController::class, 'getDaily']);
         Route::get('/reading-stats/user', [ReadingStatsApiController::class, 'getUserStats']);
         Route::get('/reading-stats/streaks', [ReadingStatsApiController::class, 'getStreaks']);
+
+        // Admin: Group management routes
+        Route::middleware('admin')->prefix('admin/groups')->group(function () {
+            Route::get('/', [AdminGroupController::class, 'index']);
+            Route::get('/{group}', [AdminGroupController::class, 'show']);
+            Route::post('/', [AdminGroupController::class, 'store']);
+            Route::post('/{group}/members', [AdminGroupController::class, 'addMember']);
+            Route::delete('/{group}/members/{user}', [AdminGroupController::class, 'removeMember']);
+        });
 
         // Admin: User management routes
         Route::middleware('admin')->prefix('admin/users')->group(function () {
