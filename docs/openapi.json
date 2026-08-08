@@ -3107,7 +3107,10 @@
         "properties": {
           "type": {
             "type": "string",
-            "enum": ["book", "day"]
+            "enum": [
+              "book",
+              "day"
+            ]
           },
           "title": {
             "type": "string",
@@ -3288,6 +3291,93 @@
           "detail": {
             "$ref": "#/components/schemas/TimelineDetail",
             "nullable": true
+          }
+        }
+      },
+      "Group": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Book Club"
+          },
+          "memberCount": {
+            "type": "integer",
+            "example": 3
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 5
+                },
+                "name": {
+                  "type": "string",
+                  "example": "Jane Doe"
+                },
+                "email": {
+                  "type": "string",
+                  "example": "jane@example.com"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ScopedBookTags": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Dune"
+          },
+          "author": {
+            "type": "string",
+            "example": "Frank Herbert"
+          },
+          "system": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "System-wide tags, visible to everyone. Admin-managed."
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "groupId": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "groupName": {
+                  "type": "string",
+                  "example": "Book Club"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "description": "Tags visible only to members of each group the caller belongs to."
+          },
+          "user": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tags private to the caller."
           }
         }
       }
@@ -7094,115 +7184,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/books/{book}/tags": {
-      "get": {
-        "tags": [
-          "Books"
-        ],
-        "summary": "Get user-defined tags for a book",
-        "description": "Returns the authenticated user's saved tags for the specified book.",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "book",
-            "in": "path",
-            "description": "Book ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Tags retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BookTag"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Books"
-        ],
-        "summary": "Update user-defined tags for a book",
-        "description": "Stores the authenticated user's tags for the specified book.",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "book",
-            "in": "path",
-            "description": "Book ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "example": 1
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "tags"
-                ],
-                "properties": {
-                  "tags": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "maxLength": 64
-                    },
-                    "example": [
-                      "Favorites",
-                      "Series"
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Tags stored successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BookTag"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationError"
           }
         }
       }
@@ -15326,6 +15307,473 @@
           },
           "422": {
             "description": "Invitation already responded to"
+          }
+        }
+      }
+    },
+    "/admin/groups": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List groups",
+        "description": "Returns all groups with member counts. Admin only.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Groups retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "groups": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Group"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Admin access required"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Create a group",
+        "description": "Creates a new group. Admin only.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Book Club"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Group created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Group"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Admin access required"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      }
+    },
+    "/admin/groups/{group}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get a group",
+        "description": "Returns a group with its members. Admin only.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "description": "Group ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Group"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Admin access required"
+          },
+          "404": {
+            "description": "Group not found"
+          }
+        }
+      }
+    },
+    "/admin/groups/{group}/members": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Add a member to a group",
+        "description": "Adds a user to a group by user id. Admin only.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "description": "Group ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "user_id"
+                ],
+                "properties": {
+                  "user_id": {
+                    "type": "integer",
+                    "example": 5
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Member added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Group"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Admin access required"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      }
+    },
+    "/admin/groups/{group}/members/{user}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Remove a member from a group",
+        "description": "Removes a user from a group. Admin only.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group",
+            "in": "path",
+            "description": "Group ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          },
+          {
+            "name": "user",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 5
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Member removed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Group"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Admin access required"
+          }
+        }
+      }
+    },
+    "/books/tags": {
+      "get": {
+        "tags": [
+          "Books"
+        ],
+        "summary": "Get tags for a title/author across all visible scopes",
+        "description": "Lite has no book catalog, so tags are keyed by title and author instead of a book id. Returns system tags (everyone), group tags (for groups the caller belongs to), and the caller's own private tags.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "description": "Book title",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "Dune"
+            }
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "description": "Book author",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "Frank Herbert"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tags retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopedBookTags"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Books"
+        ],
+        "summary": "Replace tags for one scope on a title/author",
+        "description": "Replaces the tag list for a single scope (system/group/user) on the given title/author. System tags require admin; group tags require membership in the target group; user tags are always allowed for the caller's own private list.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "scope",
+                  "tags"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "Dune"
+                  },
+                  "author": {
+                    "type": "string",
+                    "example": "Frank Herbert"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "system",
+                      "group",
+                      "user"
+                    ],
+                    "example": "user"
+                  },
+                  "group_id": {
+                    "type": "integer",
+                    "nullable": true,
+                    "description": "Required when scope is group.",
+                    "example": 1
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 64
+                    },
+                    "example": [
+                      "Favorites",
+                      "sci-fi"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tags stored successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "author": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string"
+                    },
+                    "groupId": {
+                      "type": "integer",
+                      "nullable": true
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Not allowed to set tags at this scope"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        }
+      }
+    },
+    "/tags/popular": {
+      "get": {
+        "tags": [
+          "Books"
+        ],
+        "summary": "Most-used system tags",
+        "description": "Returns the most frequently used system-scope tags, for autocomplete suggestions. Group and user tag names are never included.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of tags to return (default 20, max 50)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Popular tags retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       }
