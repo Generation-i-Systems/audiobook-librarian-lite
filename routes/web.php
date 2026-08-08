@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\AccountRequestController;
+use App\Http\Controllers\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Admin\UserController as AdminUserWebController;
 use App\Http\Controllers\AccountDeletionCancellationController;
 use App\Http\Controllers\Api\EmailOtpController;
@@ -46,4 +47,10 @@ Route::middleware(['web', 'auth', 'admin'])->prefix('admin')->name('admin.')->gr
     Route::resource('users', AdminUserWebController::class);
     Route::post('users/{id}/verify', [AdminUserWebController::class, 'verify'])
         ->name('users.verify');
+
+    Route::get('tags', [AdminTagController::class, 'index'])->name('tags.index');
+    Route::post('tags', [AdminTagController::class, 'store'])->name('tags.store');
+    Route::get('tags/{tag}/edit', [AdminTagController::class, 'edit'])->where('tag', '.+')->name('tags.edit');
+    Route::put('tags/{tag}', [AdminTagController::class, 'update'])->where('tag', '.+')->name('tags.update');
+    Route::delete('tags/{tag}', [AdminTagController::class, 'destroy'])->where('tag', '.+')->name('tags.destroy');
 });

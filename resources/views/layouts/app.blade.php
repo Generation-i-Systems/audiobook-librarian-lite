@@ -96,6 +96,11 @@
                                         <a class="nav-link" style="color:white" href="{{ route('admin.account_requests.index') }}">Account Requests</a>
                                     </li>
                                 @endif
+                                @if (\Illuminate\Support\Facades\Route::has('admin.tags.index'))
+                                    <li class="nav-item">
+                                        <a class="nav-link" style="color:white" href="{{ route('admin.tags.index') }}">Tags</a>
+                                    </li>
+                                @endif
                             @else
                                 <!-- Public Links (Show on public pages, only if routed) -->
                             @endif
