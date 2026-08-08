@@ -211,8 +211,8 @@ class ListeningGoalController extends Controller
                     $statsQuery->orWhereIn('listening_statistics.device_id', $deviceIds);
                 }
             })
-            ->where('listening_statistics.listening_date', '>=', $periodStart->toDateString())
-            ->where('listening_statistics.listening_date', '<=', $periodEnd->toDateString());
+            ->whereRaw('DATE(listening_statistics.listening_date) >= ?', [$periodStart->toDateString()])
+            ->whereRaw('DATE(listening_statistics.listening_date) <= ?', [$periodEnd->toDateString()]);
 
         switch ($goal->metric) {
             case 'genre_hours':
