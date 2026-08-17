@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Admin\AccountRequestController;
-use App\Http\Controllers\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Admin\UserController as AdminUserWebController;
 use App\Http\Controllers\AccountDeletionCancellationController;
 use App\Http\Controllers\Api\EmailOtpController;
 use App\Http\Controllers\AppConnectController;
+use App\Http\Controllers\Auth\AdminLoginController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegistrationController;
 use Illuminate\Support\Facades\Route;
 
 // Magic link OTP web routes (no auth required)
@@ -31,26 +31,19 @@ Route::post('/account-deletion/cancel/{token}', [AccountDeletionCancellationCont
 Route::get('/account-deletion/cancelled', fn () => view('account-deletion.cancelled'));
 
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::get('/register', [RegistrationController::class, 'create'])->middleware('guest')->name('register');
+Route::post('/register', [RegistrationController::class, 'store'])->middleware(['guest', 'throttle:5,1'])->name('register.store');
 Route::get('/app/connect/server', [AppConnectController::class, 'server'])->name('app.connect.server');
+Route::get('/admin/login', [AdminLoginController::class, 'create'])->middleware('guest')->name('admin.login');
+Route::post('/admin/login', [AdminLoginController::class, 'store'])->middleware(['guest', 'throttle:5,1'])->name('admin.login.store');
+Route::post('/admin/logout', [AdminLoginController::class, 'destroy'])->middleware('auth')->name('admin.logout');
 
 Route::get('/', function () {
-    return response()->json(['service' => 'AbLibrarian Lite', 'status' => 'ok']);
-});
+    return view('landing');
+})->name('landing');
 
 Route::middleware(['web', 'auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::prefix('account-requests')->name('account_requests.')->group(function () {
-        Route::get('/', [AccountRequestController::class, 'index'])->name('index');
-        Route::put('/{account_request}', [AccountRequestController::class, 'update'])->name('update');
-        Route::delete('/{account_request}', [AccountRequestController::class, 'destroy'])->name('destroy');
-    });
-
     Route::resource('users', AdminUserWebController::class);
     Route::post('users/{id}/verify', [AdminUserWebController::class, 'verify'])
         ->name('users.verify');
-
-    Route::get('tags', [AdminTagController::class, 'index'])->name('tags.index');
-    Route::post('tags', [AdminTagController::class, 'store'])->name('tags.store');
-    Route::get('tags/{tag}/edit', [AdminTagController::class, 'edit'])->where('tag', '.+')->name('tags.edit');
-    Route::put('tags/{tag}', [AdminTagController::class, 'update'])->where('tag', '.+')->name('tags.update');
-    Route::delete('tags/{tag}', [AdminTagController::class, 'destroy'])->where('tag', '.+')->name('tags.destroy');
 });

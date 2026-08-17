@@ -17,9 +17,6 @@
             <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Add User
             </a>
-            <a href="{{ route('admin.badges.index') }}" class="btn btn-info text-white">
-                <i class="fas fa-medal"></i> All Badges
-            </a>
         </div>
 
         <div class="card">
@@ -83,16 +80,6 @@
                                                     <i class="fas fa-check"></i> Verify
                                                 </button>
                                             @endif
-
-                                            <a href="{{ route('admin.events.timeline', $user['id']) }}"
-                                                class="btn btn-outline-secondary btn-sm" title="Event Timeline">
-                                                <i class="fas fa-stream"></i>
-                                            </a>
-
-                                            <a href="{{ route('admin.books.positions', $user['id']) }}"
-                                                class="btn btn-outline-secondary btn-sm" title="Books in Progress">
-                                                <i class="fas fa-book-open"></i>
-                                            </a>
 
                                             <a href="{{ route('admin.users.edit', $user['id']) }}"
                                                 class="btn btn-warning btn-sm" title="Edit User">

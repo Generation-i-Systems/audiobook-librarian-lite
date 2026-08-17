@@ -86,9 +86,7 @@ class UserController extends Controller
             abort(404);
         }
 
-        $activityData = $this->documentStoreService->getUserActivityData($id);
-
-        return view('admin.users.edit', compact('user', 'activityData'));
+        return view('admin.users.edit', compact('user'));
     }
 
     public function show($id)
@@ -98,9 +96,7 @@ class UserController extends Controller
             abort(404);
         }
 
-        $activityData = $this->documentStoreService->getUserActivityData($id);
-
-        return view('admin.users.show', compact('user', 'activityData'));
+        return view('admin.users.show', compact('user'));
     }
 
     public function profile()
@@ -111,9 +107,7 @@ class UserController extends Controller
             abort(404);
         }
 
-        $activityData = $this->documentStoreService->getUserActivityData($id);
-
-        return view('admin.users.show', compact('user', 'activityData'));
+        return view('admin.users.show', compact('user'));
     }
 
 

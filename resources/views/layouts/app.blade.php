@@ -89,18 +89,10 @@
                     <!-- Left Side Of Navbar -->
                     <ul class="navbar-nav me-auto">
                         @auth
-                            @if(request()->is('admin/*'))
-                                <!-- Admin Links (Show only in admin section, only if routed) -->
-                                @if (\Illuminate\Support\Facades\Route::has('admin.account_requests.index'))
-                                    <li class="nav-item">
-                                        <a class="nav-link" style="color:white" href="{{ route('admin.account_requests.index') }}">Account Requests</a>
-                                    </li>
-                                @endif
-                                @if (\Illuminate\Support\Facades\Route::has('admin.tags.index'))
-                                    <li class="nav-item">
-                                        <a class="nav-link" style="color:white" href="{{ route('admin.tags.index') }}">Tags</a>
-                                    </li>
-                                @endif
+                            @if(request()->is('admin/*') && Auth::user()->is_admin)
+                                <li class="nav-item">
+                                    <a class="nav-link" style="color:white" href="{{ route('admin.users.index') }}">Users</a>
+                                </li>
                             @else
                                 <!-- Public Links (Show on public pages, only if routed) -->
                             @endif
@@ -120,9 +112,12 @@
                             @if (\Illuminate\Support\Facades\Route::has('register'))
                                 <li class="nav-item">
                                     <a class="nav-link" style="color:white"
-                                        href="{{ route('register') }}">{{ __('Register') }}</a>
+                                        href="{{ route('register') }}">{{ __('Request an account') }}</a>
                                 </li>
                             @endif
+                            <li class="nav-item">
+                                <a class="nav-link" style="color:white" href="{{ route('admin.login') }}">{{ __('Admin sign in') }}</a>
+                            </li>
                         @else
                             <li class="nav-item dropdown">
                                 <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button"
@@ -138,23 +133,18 @@
                                         </a>
                                     @endif
 
-                                    @if (Auth::user()->is_admin && \Illuminate\Support\Facades\Route::has('admin.account_requests.index'))
+                                    @if (Auth::user()->is_admin)
                                         @if(!request()->is('admin/*'))
-                                            <a class="dropdown-item" href="{{ route('admin.account_requests.index') }}">
-                                                Admin
+                                            <a class="dropdown-item" href="{{ route('admin.users.index') }}">
+                                                Manage users
                                             </a>
                                         @endif
                                     @endif
 
-                                    @if (\Illuminate\Support\Facades\Route::has('logout'))
-                                        <a class="dropdown-item" href="{{ route('logout') }}"
-                                            onclick="event.preventDefault();
-                                                     refreshCsrfAndLogout();">
-                                            {{ __('Logout') }}
-                                        </a>
-
-                                        <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                                    @if (\Illuminate\Support\Facades\Route::has('admin.logout'))
+                                        <form action="{{ route('admin.logout') }}" method="POST">
                                             @csrf
+                                            <button class="dropdown-item" type="submit">{{ __('Logout') }}</button>
                                         </form>
                                     @endif
                                 </div>

@@ -42,12 +42,6 @@
             </div>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('admin.events.timeline', $user['id']) }}" class="btn btn-outline-secondary btn-sm">
-                Event Timeline
-            </a>
-            <a href="{{ route('admin.books.positions', $user['id']) }}" class="btn btn-outline-secondary btn-sm">
-                Books in Progress
-            </a>
             <a href="{{ route('admin.users.show', $user['id']) }}" class="btn btn-outline-secondary btn-sm">
                 View Profile
             </a>

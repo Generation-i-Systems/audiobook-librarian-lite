@@ -69,9 +69,8 @@ class NewUserRegistrationNotifier
 
         $userId = (string) ($userData['id'] ?? '');
 
-        // Lite has no admin user-management web UI (only the API routes under
-        // /api/v1/admin/users), so these links are omitted rather than pointing
-        // at routes that don't exist.
+        // The web user-management routes are intentionally used when available;
+        // they let an administrator open and approve this exact request.
         $editUserUrl = \Illuminate\Support\Facades\Route::has('admin.users.edit') && $userId !== ''
             ? route('admin.users.edit', $userId)
             : null;
