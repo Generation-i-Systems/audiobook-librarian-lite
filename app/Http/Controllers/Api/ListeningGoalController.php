@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BookProgress;
 use App\Models\ListeningGoal;
 use App\Models\Playlist;
+use App\Models\UserBookStatus;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,15 +23,37 @@ class ListeningGoalController extends Controller
     }
 
     /** No series concept exists on lite (listening_statistics has no series column). */
-    private const METRICS = 'total_hours,genre_hours,playlist_hours,fiction_hours,nonfiction_hours,books_finished,author_hours,book_hours';
+    private const METRICS = 'total_hours,genre_hours,playlist_hours,fiction_hours,nonfiction_hours,books_finished,author_hours,book_hours,book_completion';
 
-    /** GET /goals/listening — list all active listening goals with current progress */
+    /** GET /goals/listening — list all active (not-yet-expired) listening goals with current progress */
     public function index(): JsonResponse
     {
         $goals = ListeningGoal::where('user_id', Auth::id())
             ->where('is_active', true)
+            ->where(function ($query) {
+                $query->where('period_type', '!=', 'custom')
+                    ->orWhereNull('end_date')
+                    ->orWhere('end_date', '>=', now()->toDateString());
+            })
             ->with(['genre', 'playlist'])
             ->orderBy('period_type')
+            ->get()
+            ->map(fn ($goal) => $this->formatGoalWithProgress($goal));
+
+        return response()->json(['goals' => $goals]);
+    }
+
+    /** GET /goals/listening/history — expired or deactivated custom-period goals with final progress */
+    public function history(): JsonResponse
+    {
+        $goals = ListeningGoal::where('user_id', Auth::id())
+            ->where('period_type', 'custom')
+            ->where(function ($query) {
+                $query->where('end_date', '<', now()->toDateString())
+                    ->orWhere('is_active', false);
+            })
+            ->with(['genre', 'playlist'])
+            ->orderByDesc('end_date')
             ->get()
             ->map(fn ($goal) => $this->formatGoalWithProgress($goal));
 
@@ -49,10 +73,16 @@ class ListeningGoalController extends Controller
             'book_title'     => 'nullable|string|max:255',
             'book_author'    => 'nullable|string|max:255',
             'start_date'     => 'required_if:period_type,custom|nullable|date',
-            'end_date'       => 'required_if:period_type,custom|nullable|date|after_or_equal:start_date',
+            'end_date'       => 'required_if:period_type,custom|nullable|date',
         ]);
 
         $this->assertCustomRangeConsistency($validated['period_type'], $validated['start_date'] ?? null, $validated['end_date'] ?? null);
+        $this->assertBookCompletionRequirements(
+            $validated['metric'],
+            $validated['period_type'],
+            $validated['book_title'] ?? null,
+            $validated['book_author'] ?? null
+        );
         $this->assertPlaylistOwnership($validated['playlist_id'] ?? null);
 
         $goal = ListeningGoal::create([
@@ -89,14 +119,18 @@ class ListeningGoalController extends Controller
             'book_title'     => 'nullable|string|max:255',
             'book_author'    => 'nullable|string|max:255',
             'start_date'     => 'sometimes|nullable|date',
-            'end_date'       => 'sometimes|nullable|date|after_or_equal:start_date',
+            'end_date'       => 'sometimes|nullable|date',
             'is_active'      => 'sometimes|boolean',
         ]);
 
         $resolvedPeriodType = $validated['period_type'] ?? $goal->period_type;
+        $resolvedMetric = $validated['metric'] ?? $goal->metric;
+        $resolvedBookTitle = array_key_exists('book_title', $validated) ? $validated['book_title'] : $goal->book_title;
+        $resolvedBookAuthor = array_key_exists('book_author', $validated) ? $validated['book_author'] : $goal->book_author;
         $resolvedStartDate = array_key_exists('start_date', $validated) ? $validated['start_date'] : $goal->start_date?->toDateString();
         $resolvedEndDate = array_key_exists('end_date', $validated) ? $validated['end_date'] : $goal->end_date?->toDateString();
         $this->assertCustomRangeConsistency($resolvedPeriodType, $resolvedStartDate, $resolvedEndDate);
+        $this->assertBookCompletionRequirements($resolvedMetric, $resolvedPeriodType, $resolvedBookTitle, $resolvedBookAuthor);
         $this->assertPlaylistOwnership($validated['playlist_id'] ?? null);
 
         $goal->update($validated);
@@ -122,9 +156,11 @@ class ListeningGoalController extends Controller
         $progressAmount = $this->computeProgressAmount($goal, $periodStart, $periodEnd);
         $progressPercent = $this->progressPercent($goal, $progressAmount);
 
-        $entries = $goal->metric === 'books_finished'
-            ? $this->booksFinishedEntries($periodStart, $periodEnd)
-            : $this->hourEntries($goal, $periodStart, $periodEnd);
+        $entries = match ($goal->metric) {
+            'books_finished'  => $this->booksFinishedEntries($periodStart, $periodEnd),
+            'book_completion' => $this->bookCompletionEntries($goal, $progressAmount),
+            default           => $this->hourEntries($goal, $periodStart, $periodEnd),
+        };
 
         return response()->json([
             'period_start'     => $periodStart->toDateString(),
@@ -136,13 +172,31 @@ class ListeningGoalController extends Controller
         ]);
     }
 
+    /**
+     * Laravel's `after_or_equal:start_date` validation rule crashes with a
+     * DateMalformedStringException (it falls back to parsing the literal string "start_date" as
+     * a date) whenever start_date resolves to null - which required_if/sometimes freely allow
+     * mid-validation. Doing the date-order comparison here instead, once both fields are known to
+     * be non-empty, sidesteps that entirely.
+     */
     private function assertCustomRangeConsistency(string $periodType, ?string $startDate, ?string $endDate): void
     {
         if ($periodType === 'custom') {
             abort_if(empty($startDate) || empty($endDate), 422, 'custom period requires start_date and end_date');
+            abort_if(Carbon::parse($startDate)->gt(Carbon::parse($endDate)), 422, 'end_date must be on or after start_date');
         } else {
             abort_if(!empty($startDate) || !empty($endDate), 422, 'start_date/end_date are only allowed when period_type is custom');
         }
+    }
+
+    private function assertBookCompletionRequirements(string $metric, string $periodType, ?string $bookTitle, ?string $bookAuthor): void
+    {
+        if ($metric !== 'book_completion') {
+            return;
+        }
+
+        abort_if($periodType !== 'custom', 422, 'book_completion goals require period_type=custom');
+        abort_if(empty($bookTitle) || empty($bookAuthor), 422, 'book_completion goals require book_title and book_author');
     }
 
     private function assertPlaylistOwnership(?int $playlistId): void
@@ -190,10 +244,50 @@ class ListeningGoalController extends Controller
                 ->count();
         }
 
+        if ($goal->metric === 'book_completion') {
+            return $this->bookCompletionProgressMinutes($goal);
+        }
+
         $seconds = $this->scopedListeningQuery($goal, $periodStart, $periodEnd)
             ->sum('listening_statistics.seconds_listened');
 
         return (int) round($seconds / 60);
+    }
+
+    /**
+     * Progress for a book_completion goal is the book's actual playback position, not
+     * accumulated listening minutes in the goal's date range - re-listening or scrubbing must
+     * not corrupt "how much of the book is done." Lite has no numeric book id, so the book is
+     * identified by the same (title, author) pair used everywhere else on this backend.
+     */
+    private function bookCompletionProgressMinutes(ListeningGoal $goal): int
+    {
+        $userId = Auth::id();
+        $title = $goal->book_title ?? '__no_match__';
+        $author = $goal->book_author ?? '__no_match__';
+
+        $isCompleted = UserBookStatus::where('user_id', $userId)
+            ->where('title', $title)
+            ->where('author', $author)
+            ->where('status', 'completed')
+            ->exists();
+
+        if ($isCompleted) {
+            return $goal->target_minutes;
+        }
+
+        // Furthest position across all of the user's devices, not whichever device synced most
+        // recently - a stale sync from a device that's behind must not regress progress.
+        $furthestPositionSeconds = BookProgress::where('user_id', $userId)
+            ->where('title', $title)
+            ->where('author', $author)
+            ->max('current_position_seconds');
+
+        if ($furthestPositionSeconds === null) {
+            return 0;
+        }
+
+        return min($goal->target_minutes, (int) round($furthestPositionSeconds / 60));
     }
 
     private function scopedListeningQuery(ListeningGoal $goal, Carbon $periodStart, Carbon $periodEnd)
@@ -262,6 +356,19 @@ class ListeningGoalController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    /** @return array<int, array{type:string,title:?string,progress_minutes:int,target_minutes:int,remaining_minutes:int,target_date:?string}> */
+    private function bookCompletionEntries(ListeningGoal $goal, int $progressAmount): array
+    {
+        return [[
+            'type'              => 'book_completion',
+            'title'             => $goal->book_title,
+            'progress_minutes'  => $progressAmount,
+            'target_minutes'    => $goal->target_minutes,
+            'remaining_minutes' => max(0, $goal->target_minutes - $progressAmount),
+            'target_date'       => $goal->end_date?->toDateString(),
+        ]];
     }
 
     /** @return array<int, array{type:string,date:string,minutes:int,books:array<int,array{title:string,minutes:int}>}> */

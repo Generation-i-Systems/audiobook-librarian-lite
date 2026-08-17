@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Api;
 
 use App\Models\BookPosition;
+use App\Models\BookProgress;
 use App\Models\Device;
 use App\Models\ListeningGoal;
 use App\Models\ListeningStatistic;
@@ -443,5 +444,212 @@ class ListeningGoalControllerTest extends TestCase
         $response = $this->getJson("/api/v1/goals/listening/{$goal->id}/breakdown", ['X-Acting-As-Test' => '1']);
 
         $response->assertStatus(403);
+    }
+
+    public function test_store_book_completion_goal_requires_custom_period(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/v1/goals/listening', [
+            'period_type' => 'week',
+            'metric' => 'book_completion',
+            'target_minutes' => 60,
+            'book_title' => 'Book A',
+            'book_author' => 'Jane Doe',
+        ], ['X-Acting-As-Test' => '1']);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_store_book_completion_goal_requires_book_title_and_author(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/v1/goals/listening', [
+            'period_type' => 'custom',
+            'metric' => 'book_completion',
+            'target_minutes' => 60,
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDays(10)->toDateString(),
+        ], ['X-Acting-As-Test' => '1']);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_store_book_completion_goal_accepts_book_title_and_author(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/v1/goals/listening', [
+            'period_type' => 'custom',
+            'metric' => 'book_completion',
+            'target_minutes' => 60,
+            'book_title' => 'Book A',
+            'book_author' => 'Jane Doe',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDays(10)->toDateString(),
+        ], ['X-Acting-As-Test' => '1']);
+
+        $response->assertCreated()
+            ->assertJsonPath('goal.metric', 'book_completion')
+            ->assertJsonPath('goal.book_title', 'Book A')
+            ->assertJsonPath('goal.book_author', 'Jane Doe')
+            ->assertJsonPath('goal.target_minutes', 60);
+    }
+
+    public function test_book_completion_goal_progress_uses_furthest_position_across_devices(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($user);
+
+        ListeningGoal::create([
+            'user_id' => $user->id,
+            'period_type' => 'custom',
+            'metric' => 'book_completion',
+            'target_minutes' => 60,
+            'book_title' => 'Book A',
+            'book_author' => 'Jane Doe',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDays(10)->toDateString(),
+            'is_active' => true,
+        ]);
+
+        // Furthest-along device synced first; a behind device syncs later. Progress must not
+        // regress just because the stale row has a newer updated_at.
+        BookProgress::create([
+            'title' => 'Book A',
+            'author' => 'Jane Doe',
+            'user_id' => $user->id,
+            'device_id' => 'tablet',
+            'current_position_seconds' => 1800,
+            'total_duration_seconds' => 3600,
+            'progress_percentage' => 50,
+        ]);
+        BookProgress::create([
+            'title' => 'Book A',
+            'author' => 'Jane Doe',
+            'user_id' => $user->id,
+            'device_id' => 'phone',
+            'current_position_seconds' => 300,
+            'total_duration_seconds' => 3600,
+            'progress_percentage' => 8.3,
+        ]);
+
+        $response = $this->getJson('/api/v1/goals/listening');
+
+        $response->assertOk()
+            ->assertJsonPath('goals.0.progress_minutes', 30);
+    }
+
+    public function test_book_completion_goal_shows_full_progress_when_book_status_completed(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($user);
+
+        ListeningGoal::create([
+            'user_id' => $user->id,
+            'period_type' => 'custom',
+            'metric' => 'book_completion',
+            'target_minutes' => 60,
+            'book_title' => 'Book A',
+            'book_author' => 'Jane Doe',
+            'start_date' => now()->subDays(5)->toDateString(),
+            'end_date' => now()->addDays(5)->toDateString(),
+            'is_active' => true,
+        ]);
+
+        UserBookStatus::create([
+            'user_id' => $user->id,
+            'title' => 'Book A',
+            'author' => 'Jane Doe',
+            'status' => 'completed',
+            'order' => 1,
+        ]);
+
+        $response = $this->getJson('/api/v1/goals/listening');
+
+        $response->assertOk()
+            ->assertJsonPath('goals.0.progress_minutes', 60)
+            ->assertJsonPath('goals.0.progress_percent', 100);
+    }
+
+    public function test_history_returns_expired_custom_goal_and_excludes_it_from_index(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($user);
+
+        $expiredGoal = ListeningGoal::create([
+            'user_id' => $user->id,
+            'period_type' => 'custom',
+            'metric' => 'book_completion',
+            'target_minutes' => 60,
+            'book_title' => 'Book A',
+            'book_author' => 'Jane Doe',
+            'start_date' => now()->subDays(20)->toDateString(),
+            'end_date' => now()->subDays(1)->toDateString(),
+            'is_active' => true,
+        ]);
+
+        $activeGoal = ListeningGoal::create([
+            'user_id' => $user->id,
+            'period_type' => 'custom',
+            'metric' => 'book_completion',
+            'target_minutes' => 60,
+            'book_title' => 'Book A',
+            'book_author' => 'Jane Doe',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDays(10)->toDateString(),
+            'is_active' => true,
+        ]);
+
+        $indexResponse = $this->getJson('/api/v1/goals/listening');
+        $indexResponse->assertOk();
+        $indexIds = collect($indexResponse->json('goals'))->pluck('id')->all();
+        $this->assertContains($activeGoal->id, $indexIds);
+        $this->assertNotContains($expiredGoal->id, $indexIds);
+
+        $historyResponse = $this->getJson('/api/v1/goals/listening/history');
+        $historyResponse->assertOk();
+        $historyIds = collect($historyResponse->json('goals'))->pluck('id')->all();
+        $this->assertContains($expiredGoal->id, $historyIds);
+        $this->assertNotContains($activeGoal->id, $historyIds);
+    }
+
+    public function test_store_rejects_custom_period_with_end_date_but_null_start_date_without_crashing(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($user);
+
+        // Regression: Laravel's after_or_equal:start_date rule falls back to parsing the
+        // literal string "start_date" as a date when the compared field resolves to null,
+        // raising a DateMalformedStringException (500) instead of a clean 422.
+        $response = $this->postJson('/api/v1/goals/listening', [
+            'period_type' => 'custom',
+            'metric' => 'total_hours',
+            'target_minutes' => 60,
+            'start_date' => null,
+            'end_date' => now()->addDays(10)->toDateString(),
+        ], ['X-Acting-As-Test' => '1']);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_store_rejects_end_date_before_start_date(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/v1/goals/listening', [
+            'period_type' => 'custom',
+            'metric' => 'total_hours',
+            'target_minutes' => 60,
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->subDays(1)->toDateString(),
+        ], ['X-Acting-As-Test' => '1']);
+
+        $response->assertStatus(422);
     }
 }
