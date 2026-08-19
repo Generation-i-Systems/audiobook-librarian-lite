@@ -171,6 +171,21 @@ feature tests without running a real queue worker.
 
 ---
 
+## 12. Deployment / System Configuration
+
+Files under `etc/` are sample ops configuration meant to be installed on the real host — they
+are never loaded by PHPUnit and nothing in the app exercises them.
+
+- **`etc/logrotate.d/audiobook-librarian`** — rotates `storage/logs/*.log` (laravel.log,
+  apache_access.log, apache_error.log). Only verifiable with `logrotate -d` (dry run) or
+  `logrotate -f` against a real deployment; a syntax error or wrong `{PROJECT_PATH}` silently
+  means logs grow unbounded until disk fills. `copytruncate` risks losing a few in-flight log
+  lines written between the copy and the truncate — acceptable for Laravel's per-request file
+  handle, but a real risk for apache's continuously-held file descriptor if apache is the
+  actual web server on the host.
+
+---
+
 ## Adding New Items
 
 When you introduce a feature that belongs in any category above:

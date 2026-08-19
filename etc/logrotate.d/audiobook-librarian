@@ -3,8 +3,12 @@
 # Copy or symlink this file into /etc/logrotate.d and update {PROJECT_PATH}
 # to match the absolute path of your deployment.
 #
+# Rotates every log file in storage/logs: Laravel's laravel.log (and
+# laravel-YYYY-MM-DD.log if LOG_CHANNEL=daily), apache_access.log,
+# apache_error.log, and any other *.log file written there in the future.
+#
 
-{PROJECT_PATH}/storage/logs/laravel.log {
+{PROJECT_PATH}/storage/logs/*.log {
     daily
     rotate 14
     missingok
