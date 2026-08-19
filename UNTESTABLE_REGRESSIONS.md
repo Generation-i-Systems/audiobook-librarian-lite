@@ -184,6 +184,17 @@ are never loaded by PHPUnit and nothing in the app exercises them.
   handle, but a real risk for apache's continuously-held file descriptor if apache is the
   actual web server on the host.
 
+- **Multi-domain Apache vhost + `SESSION_DOMAIN`/`LIBRARY_PROFILE_MAIN_HOSTS`** — this instance's
+  production vhost (`lite.audiobooklibrarian.com.conf`, outside the repo) serves multiple
+  `ServerAlias` hostnames across two apex domains (`ablibrarian.com`, `audiobooklibrarian.com`).
+  PHPUnit never sees real Apache config or real browser cookie-domain enforcement, so a wrong
+  `ServerAlias`, a `SESSION_DOMAIN` set to one apex domain, or a `LIBRARY_PROFILE_MAIN_HOSTS`
+  missing a hostname all fail silently: requests 404/mismatch on the untested domain, or the
+  browser silently drops the session cookie (login "succeeds" but the user appears logged out
+  on the next request) with no error surfaced anywhere. Verify with a real browser/`curl -I`
+  against each configured hostname after any vhost or `SESSION_DOMAIN`/`LIBRARY_PROFILE_*`
+  change, and check `storage/logs/laravel.log` for "No library profile matched host" warnings.
+
 ---
 
 ## Adding New Items

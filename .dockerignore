@@ -1,0 +1,33 @@
+# This image is published to a shared registry (ghcr.io) and reused by other
+# self-hosted instances. Never let this checkout's instance-local state -
+# secrets, the live database, domain-specific config, logs, or stored books -
+# end up baked into the image, even if someone builds from a live checkout
+# instead of a clean clone.
+
+.env
+.env.backup
+.env.production
+.env.testing
+
+database/*.sqlite*
+storage/app/*
+storage/logs/*
+!storage/app/.gitignore
+!storage/logs/.gitignore
+
+.git
+.github
+.claude
+.agent
+.cursorrules
+.windsurf
+
+node_modules
+vendor
+coverage-html
+tests
+tests-integration
+docs
+
+*.log
+*.patch

@@ -1,3 +1,7 @@
+# PUBLIC_HOST may be a single hostname or a comma/space-separated list of
+# hostnames (e.g. "lite.example.com, sync.example.com") if this instance
+# should answer on more than one domain. Caddy requests one certificate per
+# hostname listed and serves all of them from this same block.
 {$PUBLIC_HOST} {
     reverse_proxy lite:8080
 }

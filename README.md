@@ -33,6 +33,7 @@ On first run, migrations run automatically and the database is created at `./dat
 | `APP_ENV` | `production` | Environment (`production` or `local`) |
 | `APP_DEBUG` | `false` | Enable debug mode |
 | `APP_URL` | `https://server.example.com` | Public HTTPS URL of the server |
+| `PUBLIC_HOST` | `server.example.com` | Hostname(s) for the Caddy HTTPS profile — a single hostname, or a comma/space-separated list (e.g. `lite.example.com, sync.example.com`) if this instance should answer on more than one domain |
 | `DB_CONNECTION` | `sqlite` | Database driver (`sqlite` or `mysql`) |
 | `DB_DATABASE` | `/app/storage/database.sqlite` | SQLite database path |
 | `DB_HOST` | `127.0.0.1` | MySQL host (when using MySQL) |
