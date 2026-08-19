@@ -34,3 +34,6 @@ tests/coverage
 tmp_old_form.js
 /bootstrap/cache/*.php
 .claude/settings.local.json
+
+# Leaked GCP service account key removed 2026-08-19; never re-add credential files
+archive/firestore/*.json
