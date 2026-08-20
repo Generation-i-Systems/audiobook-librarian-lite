@@ -174,6 +174,10 @@ feature tests without running a real queue worker.
 
 ## 12. Deployment / System Configuration
 
+- **`app:refresh`** (`AppRefreshCommand`) — runs deploy-time Composer, migrations, frontend builds,
+  queue restarts, permission repairs, OPcache, and PHP-FPM actions. Tests cover the command wiring
+  and opt-out flags, but not host permissions, service names, tool availability, or production data.
+
 Files under `etc/` are sample ops configuration meant to be installed on the real host — they
 are never loaded by PHPUnit and nothing in the app exercises them.
 
