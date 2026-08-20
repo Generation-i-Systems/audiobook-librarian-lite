@@ -13925,7 +13925,7 @@
         "tags": [
           "Goals"
         ],
-        "summary": "List expired listening goals",
+        "summary": "List completed or expired custom-range listening goals",
         "operationId": "listListeningGoalHistory",
         "security": [
           {
@@ -13934,7 +13934,22 @@
         ],
         "responses": {
           "200": {
-            "description": "Expired listening goals"
+            "description": "History of custom-range listening goals that have ended or been deactivated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "goals": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ListeningGoal"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"

@@ -80,6 +80,7 @@ These features require real directory trees and file contents on disk.
   `is_readable()`, `disk_free_space()`, `disk_total_space()`. Tests use `/tmp` as a stand-in;
   they cannot verify that the actual production mounts (e.g. `/media/audiobooks/books`) are
   mounted, readable, or have sufficient free space.
+- **`BackupDatabase` command** — invokes `mysqldump`, `pg_dump`, `sqlite3`, and `gzip` against the real database and filesystem. Tests can verify command construction and temporary SQLite snapshots, but cannot prove production tool availability, permissions, retention cleanup, or backup restorability.
 
 ---
 
