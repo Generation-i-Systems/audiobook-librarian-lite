@@ -162,17 +162,22 @@ class UserAccountService
             $counter++;
         }
 
-        $user = User::create([
+        $userAttributes = [
             'name' => $data['name'],
             'username' => $username,
             'email' => $data['email'],
             'password' => $data['password'],
             'role' => $data['role'] ?? 'library-user',
             'email_verified_at' => $data['email_verified_at'] ?? null,
-            'google_id' => $data['google_id'] ?? null,
-            'facebook_id' => $data['facebook_id'] ?? null,
-            'apple_id' => $data['apple_id'] ?? null,
-        ]);
+        ];
+
+        foreach (['google_id', 'facebook_id', 'apple_id', 'discord_id'] as $oauthColumn) {
+            if (Schema::hasColumn('users', $oauthColumn)) {
+                $userAttributes[$oauthColumn] = $data[$oauthColumn] ?? null;
+            }
+        }
+
+        $user = User::create($userAttributes);
 
         return (string) $user->id;
     }

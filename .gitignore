@@ -8,6 +8,7 @@
 /storage/debugbar/*
 /storage/app/public/covers/*
 /storage/app/permissions-queue.txt
+/storage/app/backups/
 /storage/import/test-audio/test.mp3
 /storage/logs/*
 /vendor

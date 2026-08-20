@@ -10,7 +10,9 @@ use App\Models\ListeningEvent;
 use App\Models\User;
 use App\Models\UserBadge;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class AdministrativeAccessTest extends TestCase
@@ -44,6 +46,30 @@ class AdministrativeAccessTest extends TestCase
         $response->assertRedirect(route('landing'));
         $this->assertDatabaseHas('users', [
             'email' => 'requested@example.com',
+            'role' => 'unverified',
+        ]);
+        Mail::assertSent(NewUserRegistrationNotification::class);
+    }
+
+    public function testWebRegistrationWorksWhenOptionalOauthColumnsAreNotYetPresent(): void
+    {
+        Mail::fake();
+
+        Schema::table('users', function (Blueprint $table): void {
+            $table->dropColumn(['google_id', 'facebook_id', 'apple_id', 'discord_id']);
+        });
+
+        $response = $this->post(route('register.store'), [
+            'name' => 'Legacy Schema User',
+            'username' => 'legacy-schema-user',
+            'email' => 'legacy-schema@example.com',
+            'password' => 'secure-password',
+            'password_confirmation' => 'secure-password',
+        ]);
+
+        $response->assertRedirect(route('landing'));
+        $this->assertDatabaseHas('users', [
+            'email' => 'legacy-schema@example.com',
             'role' => 'unverified',
         ]);
         Mail::assertSent(NewUserRegistrationNotification::class);
