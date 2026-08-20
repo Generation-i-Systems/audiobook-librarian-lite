@@ -20,7 +20,7 @@ class AdminGroupControllerTest extends TestCase
 
     public function test_create_group_requires_admin(): void
     {
-        $this->actingAs(User::factory()->create(['role' => 'hybrid-user']));
+        $this->actingAs(User::factory()->create(['role' => 'full-user']));
 
         $response = $this->postJson('/api/v1/admin/groups', ['name' => 'Book Club']);
 
@@ -57,7 +57,7 @@ class AdminGroupControllerTest extends TestCase
 
     public function test_user_endpoint_returns_groups(): void
     {
-        $user = User::factory()->create(['role' => 'hybrid-user']);
+        $user = User::factory()->create(['role' => 'full-user']);
         $group = Group::query()->create(['name' => 'Book Club']);
         $group->members()->attach($user->id);
 

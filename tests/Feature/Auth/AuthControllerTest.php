@@ -128,7 +128,7 @@ class AuthControllerTest extends TestCase
             'username' => 'testuser' . $uniqueSuffix,
             'email' => $testEmail,
             'password' => Hash::make('password'),
-            'role' => 'user',
+            'role' => 'full-user',
         ]);
 
         $response = $this->postJson('/api/v1/login', [
@@ -222,7 +222,7 @@ class AuthControllerTest extends TestCase
             'username' => 'testuser' . $uniqueSuffix,
             'email' => $testEmail,
             'password' => Hash::make('password'),
-            'role' => 'user',
+            'role' => 'full-user',
         ]);
 
         $response = $this->postJson('/api/v1/check-status', [
@@ -275,7 +275,7 @@ class AuthControllerTest extends TestCase
             'username' => 'testuser' . $uniqueSuffix,
             'email' => $testEmail,
             'password' => Hash::make('password'),
-            'role' => 'library-user',
+            'role' => 'full-user',
         ]);
 
         // Log in to get a valid token
@@ -311,7 +311,7 @@ class AuthControllerTest extends TestCase
             'username' => 'delete' . $uniqueSuffix,
             'email' => 'delete' . $uniqueSuffix . '@example.com',
             'password' => Hash::make('password'),
-            'role' => 'library-user',
+            'role' => 'full-user',
         ]);
 
         $loginResponse = $this->postJson('/api/v1/login', [
@@ -383,7 +383,7 @@ class AuthControllerTest extends TestCase
             'username' => 'purge' . $uniqueSuffix,
             'email' => 'purge' . $uniqueSuffix . '@example.com',
             'password' => Hash::make('password'),
-            'role' => 'library-user',
+            'role' => 'full-user',
         ]);
         ClientEvent::create([
             'user_id' => $user->id,

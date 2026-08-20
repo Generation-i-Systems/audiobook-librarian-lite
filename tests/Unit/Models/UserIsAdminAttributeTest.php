@@ -32,7 +32,7 @@ class UserIsAdminAttributeTest extends TestCase
     public function testIsAdminFalseForUserRole(): void
     {
         $user = new User();
-        $user->role = 'user';
+        $user->role = 'full-user';
 
         $this->assertFalse($user->is_admin);
     }

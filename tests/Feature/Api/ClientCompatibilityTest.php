@@ -22,7 +22,7 @@ class ClientCompatibilityTest extends TestCase
         parent::setUp();
 
         $this->user = User::factory()->create([
-            'role' => 'library-user',
+            'role' => 'full-user',
         ]);
 
         Sanctum::actingAs($this->user, ['*']);

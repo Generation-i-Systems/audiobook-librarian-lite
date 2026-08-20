@@ -5381,7 +5381,7 @@
                       "username": "johndoe",
                       "email": "john@example.com",
                       "photo_url": "https://books.thelin.org/api/v1/books/1/cover",
-                      "role": "user",
+                      "role": "full-user",
                       "authToken": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
                       "refreshToken": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
                       "token": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -6120,7 +6120,7 @@
                       "username": "johndoe",
                       "email": "john@example.com",
                       "photo_url": "https://books.thelin.org/api/v1/books/1/cover",
-                      "role": "user",
+                      "role": "full-user",
                       "email_verified_at": null,
                       "created_at": "2024-01-01T12:00:00Z",
                       "updated_at": "2024-01-01T12:00:00Z"
@@ -6220,7 +6220,7 @@
                       "username": "johndoe",
                       "email": "john@example.com",
                       "photo_url": "https://books.thelin.org/api/v1/books/1/cover",
-                      "role": "user",
+                      "role": "full-user",
                       "email_verified_at": null,
                       "created_at": "2024-01-01T12:00:00Z",
                       "updated_at": "2024-01-01T12:00:00Z"
@@ -13142,7 +13142,7 @@
                       "username": "johndoe",
                       "email": "john@example.com",
                       "photo_url": "https://books.thelin.org/api/v1/books/1/cover",
-                      "role": "user",
+                      "role": "full-user",
                       "authToken": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
                       "refreshToken": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
                       "token": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"

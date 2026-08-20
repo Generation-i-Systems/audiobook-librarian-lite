@@ -30,7 +30,7 @@ class DocumentstoreUser implements Authenticatable
         'email' => null,
         'password' => null,
         'remember_token' => null,
-        'role' => 'library-user', // Default role
+        'role' => 'full-user', // Default role
     ];
 
     /**
@@ -43,7 +43,7 @@ class DocumentstoreUser implements Authenticatable
         $this->userData['email'] = $user['email'] ?? null;
         $this->userData['password'] = $user['password'] ?? null;
         $this->userData['remember_token'] = $user['remember_token'] ?? null;
-        $this->userData['role'] = $user['role'] ?? 'library-user';
+        $this->userData['role'] = $user['role'] ?? 'full-user';
     }
 
     public function getAuthIdentifierName()
@@ -173,7 +173,7 @@ class DocumentstoreUser implements Authenticatable
      */
     public function isAdmin(): bool
     {
-        $role = $this->userData['role'] ?? 'library-user';
+        $role = $this->userData['role'] ?? 'full-user';
 
         return in_array($role, ['admin', 'super-admin'], true);
     }

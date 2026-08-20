@@ -12,16 +12,7 @@ class RequireLibraryRole
     /**
      * Roles that may access library API endpoints.
      */
-    private const ALLOWED_ROLES = ['trial-user', 'full-user', 'library-user', 'librivox-user', 'hybrid-user', 'admin', 'super-admin'];
-
-    /**
-     * Roles that have a fixed source mode regardless of which host they access.
-     * Hybrid users and admins follow the host-resolved source mode instead.
-     */
-    private const ROLE_SOURCE_MODE = [
-        'library-user'  => 'local',
-        'librivox-user' => 'librivox',
-    ];
+    private const ALLOWED_ROLES = ['trial-user', 'full-user', 'admin', 'super-admin'];
 
     /**
      * Handle an incoming request.
@@ -55,14 +46,6 @@ class RequireLibraryRole
                 return $next($request);
             }
             return response()->json(['message' => 'Forbidden'], 403);
-        }
-
-        // For library-user and librivox-user, enforce source mode from the role
-        // rather than from the host, so users always see their correct data
-        // regardless of which hostname they connect through.
-        // hybrid-user, admin, and super-admin use the host-resolved source mode.
-        if (isset(self::ROLE_SOURCE_MODE[$role])) {
-            config(['library_profiles.active_source_mode' => self::ROLE_SOURCE_MODE[$role]]);
         }
 
         return $next($request);

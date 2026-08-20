@@ -84,6 +84,57 @@
         </div>
     </div>
 
+    @php($activityData = $activityData ?? [])
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0">Current Positions</h5></div>
+                <div class="card-body p-0">
+                    @if (empty($activityData['progress']))
+                        <p class="p-3 mb-0 text-muted">No current listening positions have been synced.</p>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead><tr><th>Book</th><th>Position</th><th>Last listened</th></tr></thead>
+                                <tbody>
+                                    @foreach ($activityData['progress'] as $progress)
+                                        <tr>
+                                            <td>{{ $progress['book_title'] }}@if (!empty($progress['book_author'])) <small class="text-muted">by {{ $progress['book_author'] }}</small>@endif</td>
+                                            <td>{{ number_format((float) $progress['percentage'], 1) }}%</td>
+                                            <td>{{ !empty($progress['last_listened_at']) ? \Carbon\Carbon::parse($progress['last_listened_at'])->format('M j, Y g:i A') : 'N/A' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0">Badge Progress</h5></div>
+                <div class="card-body p-0">
+                    @if (empty($activityData['badges_by_category']))
+                        <p class="p-3 mb-0 text-muted">No badge progress is available.</p>
+                    @else
+                        <ul class="list-group list-group-flush">
+                            @foreach ($activityData['badges_by_category'] as $category => $badges)
+                                @foreach ($badges as $badge)
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <span>{{ $badge['emoji'] ?? '🏅' }} {{ $badge['name'] }} <small class="text-muted">({{ ucfirst($category) }})</small></span>
+                                        <span class="badge {{ $badge['is_earned'] ? 'bg-success' : 'bg-secondary' }}">{{ $badge['is_earned'] ? 'Earned' : 'Next' }}</span>
+                                    </li>
+                                @endforeach
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-lg-6 mb-4">
             <div class="card h-100">

@@ -115,7 +115,7 @@ class AdministrativeAccessTest extends TestCase
         $user = User::factory()->create([
             'email' => 'member@example.com',
             'password' => 'secure-password',
-            'role' => 'user',
+            'role' => 'full-user',
         ]);
 
         $response = $this->from(route('admin.login'))->post(route('admin.login.store'), [

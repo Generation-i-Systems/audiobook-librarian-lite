@@ -69,7 +69,7 @@
                                             <span class="badge bg-success">Verified</span>
                                         @endif
                                     </td>
-                                    <td>{{ ucfirst($user['role'] ?? 'user') }}</td>
+                                    <td>{{ ucfirst($user['role'] ?? 'full-user') }}</td>
                                     <td>
                                         <div class="btn-group" role="group">
                                             @if(($user['role'] ?? '') === 'unverified')
@@ -122,32 +122,18 @@
                     </div>
                     <div class="modal-footer flex-wrap gap-2">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <form id="verifyPlayerForm" method="POST" class="d-inline">
+                        <form id="verifyTrialForm" method="POST" class="d-inline">
                             @csrf
-                            <input type="hidden" name="role" value="user">
+                            <input type="hidden" name="role" value="trial-user">
                             <button type="submit" class="btn btn-outline-secondary">
-                                <i class="fas fa-play"></i> Player Only
+                                <i class="fas fa-hourglass-half"></i> Trial Access
                             </button>
                         </form>
-                        <form id="verifyLibraryForm" method="POST" class="d-inline">
+                        <form id="verifyFullForm" method="POST" class="d-inline">
                             @csrf
-                            <input type="hidden" name="role" value="library-user">
+                            <input type="hidden" name="role" value="full-user">
                             <button type="submit" class="btn btn-success">
-                                <i class="fas fa-book"></i> Library User
-                            </button>
-                        </form>
-                        <form id="verifyLibrivoxForm" method="POST" class="d-inline">
-                            @csrf
-                            <input type="hidden" name="role" value="librivox-user">
-                            <button type="submit" class="btn btn-info">
-                                <i class="fas fa-microphone"></i> LibriVox User
-                            </button>
-                        </form>
-                        <form id="verifyHybridForm" method="POST" class="d-inline">
-                            @csrf
-                            <input type="hidden" name="role" value="hybrid-user">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-layer-group"></i> Hybrid User
+                                <i class="fas fa-check"></i> Full Access
                             </button>
                         </form>
                     </div>
@@ -164,7 +150,7 @@
 
             document.getElementById('verifyUserName').textContent = userName;
 
-            ['verifyPlayerForm', 'verifyLibraryForm', 'verifyLibrivoxForm', 'verifyHybridForm'].forEach(function(id) {
+            ['verifyTrialForm', 'verifyFullForm'].forEach(function (id) {
                 document.getElementById(id).setAttribute('action', baseUrl);
             });
         });

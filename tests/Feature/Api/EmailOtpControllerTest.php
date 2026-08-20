@@ -141,7 +141,7 @@ class EmailOtpControllerTest extends TestCase
     {
         $user = User::factory()->create([
             'email' => 'existing@example.com',
-            'role' => 'library-user',
+            'role' => 'full-user',
         ]);
 
         $magicToken = bin2hex(random_bytes(32));

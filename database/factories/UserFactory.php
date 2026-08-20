@@ -32,7 +32,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => 'password', // This will be hashed by the model's password mutator
             'remember_token' => Str::random(10),
-            'role' => 'user',
+            'role' => 'full-user',
         ];
     }
 

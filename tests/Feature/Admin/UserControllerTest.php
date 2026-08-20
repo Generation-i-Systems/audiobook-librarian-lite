@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Admin;
 
+use App\Contracts\DocumentStoreServiceInterface;
 use App\Mail\EmailOtpMail;
 use App\Mail\WelcomeMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Mockery;
 use Tests\TestCase;
 
 class UserControllerTest extends TestCase
@@ -29,7 +31,7 @@ class UserControllerTest extends TestCase
             'name' => 'New Guy',
             'username' => 'newguy',
             'email' => 'newguy@example.com',
-            'role' => 'user',
+            'role' => 'full-user',
         ]);
 
         $response->assertRedirect(route('admin.users.index'));
@@ -50,7 +52,7 @@ class UserControllerTest extends TestCase
             'name' => 'Password User',
             'username' => 'pwuser',
             'email' => 'pwuser@example.com',
-            'role' => 'user',
+            'role' => 'full-user',
             'send_otp_email' => '0',
             'password' => 'secret123',
             'password_confirmation' => 'secret123',
@@ -58,5 +60,65 @@ class UserControllerTest extends TestCase
 
         $response->assertRedirect(route('admin.users.index'));
         Mail::assertNothingSent();
+    }
+
+    public function testVerifyDialogIncludesOnlyCurrentVerificationStates(): void
+    {
+        $this->actingAs($this->admin());
+        User::factory()->create(['role' => 'unverified']);
+
+        $response = $this->get(route('admin.users.index'));
+
+        $response->assertOk();
+
+        foreach (['trial-user', 'full-user'] as $role) {
+            $response->assertSee('value="' . $role . '"', false);
+        }
+
+        foreach (['admin', 'super-admin'] as $role) {
+            $response->assertDontSee('value="' . $role . '"', false);
+        }
+    }
+
+    public function testProfileRendersCurrentPositionsAndBadgeProgress(): void
+    {
+        $admin = $this->admin();
+        $service = Mockery::mock(DocumentStoreServiceInterface::class);
+        $service->shouldReceive('getUserById')->once()->andReturn([
+            'id' => $admin->id,
+            'name' => $admin->name,
+            'username' => $admin->username,
+            'email' => $admin->email,
+            'role' => 'admin',
+            'created_at' => now(),
+            'listening_statistics' => [],
+            'badges' => [],
+            'events' => [],
+        ]);
+        $service->shouldReceive('getUserActivityData')->once()->with((string) $admin->id)->andReturn([
+            'progress' => [[
+                'book_title' => 'Current Book',
+                'book_author' => 'Current Author',
+                'percentage' => 42.5,
+                'last_listened_at' => now(),
+            ]],
+            'badges_by_category' => [
+                'listening' => [[
+                    'name' => 'First Listen',
+                    'emoji' => '🎧',
+                    'is_earned' => true,
+                ]],
+            ],
+        ]);
+        $this->app->instance(DocumentStoreServiceInterface::class, $service);
+
+        $this->actingAs($admin)
+            ->get(route('profile.index'))
+            ->assertOk()
+            ->assertSee('Current Positions')
+            ->assertSee('Current Book')
+            ->assertSee('42.5%')
+            ->assertSee('Badge Progress')
+            ->assertSee('First Listen');
     }
 }

@@ -72,7 +72,7 @@ class AdminUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255',
             'username' => 'required|string|max:255|alpha_dash',
-            'role' => 'sometimes|string|in:trial-user,full-user,user,library-user,librivox-user,hybrid-user,admin,super-admin,unverified',
+            'role' => 'sometimes|string|in:trial-user,full-user,admin,super-admin,unverified',
             'send_otp_email' => 'sometimes|boolean',
         ]);
 
@@ -96,7 +96,7 @@ class AdminUserController extends Controller
             'email' => $email,
             'username' => $username,
             'password' => Hash::make(Str::random(32)),
-            'role' => $request->input('role', 'user'),
+            'role' => $request->input('role', 'full-user'),
             'must_change_password' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -183,7 +183,7 @@ class AdminUserController extends Controller
         }
 
         $role = $request->input('role', 'trial-user');
-        if (!in_array($role, ['trial-user', 'full-user', 'user', 'library-user', 'librivox-user', 'hybrid-user', 'admin', 'super-admin'], true)) {
+        if (!in_array($role, ['trial-user', 'full-user', 'admin', 'super-admin'], true)) {
             return response()->json(['message' => 'Invalid role selected.'], 422);
         }
 

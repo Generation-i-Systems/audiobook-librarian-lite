@@ -23,10 +23,6 @@
                 <option value="unverified" {{ old('role') == 'unverified' ? 'selected' : '' }}>Unverified</option>
                 <option value="trial-user" {{ old('role') == 'trial-user' ? 'selected' : '' }}>Verified Trial Access</option>
                 <option value="full-user" {{ old('role') == 'full-user' ? 'selected' : '' }}>Verified Full Access</option>
-                <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>User (Player Only)</option>
-                <option value="library-user" {{ old('role') == 'library-user' ? 'selected' : '' }}>Library User (Local Books)</option>
-                <option value="librivox-user" {{ old('role') == 'librivox-user' ? 'selected' : '' }}>LibriVox User (LibriVox Books)</option>
-                <option value="hybrid-user" {{ old('role') == 'hybrid-user' ? 'selected' : '' }}>Hybrid User (Local + LibriVox)</option>
                 <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                 <option value="super-admin" {{ old('role') == 'super-admin' ? 'selected' : '' }}>Super Admin</option>
             </select>

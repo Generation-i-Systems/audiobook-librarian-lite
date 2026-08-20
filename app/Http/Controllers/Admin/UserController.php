@@ -44,7 +44,7 @@ class UserController extends Controller
             'username' => 'required|string|max:255',
             'email' => 'required|email',
             'password' => 'nullable|string|min:6|confirmed',
-            'role' => 'required|string',
+            'role' => 'required|string|in:unverified,trial-user,full-user,admin,super-admin',
             'send_otp_email' => 'sometimes|boolean',
         ]);
         // Uniqueness check
@@ -96,7 +96,9 @@ class UserController extends Controller
             abort(404);
         }
 
-        return view('admin.users.show', compact('user'));
+        $activityData = $this->documentStoreService->getUserActivityData((string) $user['id']);
+
+        return view('admin.users.show', compact('user', 'activityData'));
     }
 
     public function profile()
@@ -107,7 +109,9 @@ class UserController extends Controller
             abort(404);
         }
 
-        return view('admin.users.show', compact('user'));
+        $activityData = $this->documentStoreService->getUserActivityData((string) $user['id']);
+
+        return view('admin.users.show', compact('user', 'activityData'));
     }
 
 
@@ -117,7 +121,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255',
             'email' => 'required|email',
-            'role' => 'required|string',
+            'role' => 'required|string|in:unverified,trial-user,full-user,admin,super-admin',
             'password' => 'nullable|string|min:6|confirmed',
         ]);
 

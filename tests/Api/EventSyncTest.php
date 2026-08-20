@@ -18,7 +18,7 @@ class EventSyncTest extends TestCase
 
     public function testSyncCreatesNewEvents(): void
     {
-        $user = User::factory()->create(['role' => 'library-user']);
+        $user = User::factory()->create(['role' => 'full-user']);
         $this->actingAs($user, 'api');
 
         $payload = [
@@ -63,7 +63,7 @@ class EventSyncTest extends TestCase
 
     public function testSyncDeduplicatesEvents(): void
     {
-        $user = User::factory()->create(['role' => 'library-user']);
+        $user = User::factory()->create(['role' => 'full-user']);
         $this->actingAs($user, 'api');
 
         // Create event
@@ -114,7 +114,7 @@ class EventSyncTest extends TestCase
 
     public function testSyncReturnsRemoteEventsFromOtherDevices(): void
     {
-        $user = User::factory()->create(['role' => 'library-user']);
+        $user = User::factory()->create(['role' => 'full-user']);
         $this->actingAs($user, 'api');
 
         ListeningEvent::create([
@@ -148,7 +148,7 @@ class EventSyncTest extends TestCase
 
     public function testSyncAlwaysReturnsNextSyncAfter(): void
     {
-        $user = User::factory()->create(['role' => 'library-user']);
+        $user = User::factory()->create(['role' => 'full-user']);
         $this->actingAs($user, 'api');
 
         $response = $this->postJson('/api/v1/sync/events', [
@@ -168,7 +168,7 @@ class EventSyncTest extends TestCase
 
     public function testSyncSkipsMigratedEvents(): void
     {
-        $user = User::factory()->create(['role' => 'library-user']);
+        $user = User::factory()->create(['role' => 'full-user']);
         $this->actingAs($user, 'api');
 
         $payload = [

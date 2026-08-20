@@ -167,7 +167,7 @@ class UserAccountService
             'username' => $username,
             'email' => $data['email'],
             'password' => $data['password'],
-            'role' => $data['role'] ?? 'library-user',
+            'role' => $data['role'] ?? 'full-user',
             'email_verified_at' => $data['email_verified_at'] ?? null,
         ];
 

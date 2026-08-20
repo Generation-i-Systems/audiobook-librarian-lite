@@ -16,7 +16,7 @@ class BookTagControllerTest extends TestCase
 
     private function actingUser(array $attributes = []): User
     {
-        $user = User::factory()->create(array_merge(['role' => 'library-user'], $attributes));
+        $user = User::factory()->create(array_merge(['role' => 'full-user'], $attributes));
         Sanctum::actingAs($user);
 
         return $user;

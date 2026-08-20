@@ -80,10 +80,6 @@
                 <option value="unverified" {{ old('role', $user['role'] ?? '') == 'unverified' ? 'selected' : '' }}>Unverified</option>
                 <option value="trial-user" {{ old('role', $user['role'] ?? '') == 'trial-user' ? 'selected' : '' }}>Verified Trial Access</option>
                 <option value="full-user" {{ old('role', $user['role'] ?? '') == 'full-user' ? 'selected' : '' }}>Verified Full Access</option>
-                <option value="user" {{ old('role', $user['role'] ?? '') == 'user' ? 'selected' : '' }}>User (Player Only)</option>
-                <option value="library-user" {{ old('role', $user['role'] ?? '') == 'library-user' ? 'selected' : '' }}>Library User (Local Books)</option>
-                <option value="librivox-user" {{ old('role', $user['role'] ?? '') == 'librivox-user' ? 'selected' : '' }}>LibriVox User (LibriVox Books)</option>
-                <option value="hybrid-user" {{ old('role', $user['role'] ?? '') == 'hybrid-user' ? 'selected' : '' }}>Hybrid User (Local + LibriVox)</option>
                 <option value="admin" {{ old('role', $user['role'] ?? '') == 'admin' ? 'selected' : '' }}>Admin</option>
                 <option value="super-admin" {{ old('role', $user['role'] ?? '') == 'super-admin' ? 'selected' : '' }}>Super Admin</option>
             </select>
@@ -132,7 +128,7 @@
     @if(($user['role'] ?? '') === 'unverified')
         <form id="verify-user-form" action="{{ route('admin.users.verify', $user['id']) }}" method="POST" class="d-none">
             @csrf
-            <input type="hidden" name="role" id="verify-role-input" value="user">
+            <input type="hidden" name="role" id="verify-role-input" value="trial-user">
         </form>
         <script>
             document.querySelectorAll('.verify-role-btn').forEach(function(btn) {

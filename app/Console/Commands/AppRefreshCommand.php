@@ -25,8 +25,8 @@ class AppRefreshCommand extends Command
         {--writable-group= : Group that should own writable directories (default: APP_REFRESH_WRITABLE_GROUP or www-data when available)}
         {--production : Re-cache config/route/event/view for production after clearing}
         {--no-opcache : Skip OPcache reset}
-        {--no-fpm-reload : Skip the php-fpm reload step}
-        {--fpm-service= : Override the php-fpm systemd service name (auto-detected by default)}';
+        {--no-fpm-reload : Skip the web server reload step}
+        {--fpm-service= : Override the web server systemd service name (defaults to apache2)}';
 
     protected $description = 'Safely refresh a deployed Lite checkout after code changes.';
 
@@ -34,6 +34,7 @@ class AppRefreshCommand extends Command
     {
         $this->components->info('Starting application refresh');
         $this->clearCaches();
+        $this->clearPackageDiscoveryCaches();
 
         if (! $this->option('no-permissions')) {
             $this->repairWritableDirectoryPermissions();
@@ -41,6 +42,10 @@ class AppRefreshCommand extends Command
 
         if (! $this->option('no-composer-install')) {
             $this->runComposerInstall();
+
+            if ($this->usesProductionDependencies()) {
+                return $this->restartAfterProductionComposerInstall();
+            }
         } elseif (! $this->option('no-autoload')) {
             $this->dumpAutoload();
         }
@@ -66,7 +71,7 @@ class AppRefreshCommand extends Command
         }
 
         if (! $this->option('no-fpm-reload')) {
-            $this->reloadPhpFpm();
+            $this->reloadWebServer();
         }
 
         $this->components->info('Application refresh complete');
@@ -77,6 +82,20 @@ class AppRefreshCommand extends Command
     private function clearCaches(): void
     {
         $this->components->task('Clearing caches', fn (): bool => Artisan::call('optimize:clear', [], $this->getOutput()) === self::SUCCESS);
+    }
+
+    private function clearPackageDiscoveryCaches(): void
+    {
+        $this->components->task('Clearing package discovery caches', function (): bool {
+            foreach (['packages.php', 'services.php'] as $file) {
+                $path = base_path('bootstrap/cache/' . $file);
+                if (is_file($path) && ! @unlink($path)) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
     }
 
     private function repairWritableDirectoryPermissions(): void
@@ -145,10 +164,37 @@ class AppRefreshCommand extends Command
     private function runComposerInstall(): void
     {
         $command = ['composer', 'install', '--no-interaction', '--optimize-autoloader'];
-        if (app()->isProduction() || $this->option('production')) {
+        if ($this->usesProductionDependencies()) {
             $command[] = '--no-dev';
         }
         $this->components->task('composer install', fn (): bool => $this->runProcess($command, 300));
+    }
+
+    private function usesProductionDependencies(): bool
+    {
+        return app()->isProduction() || $this->option('production');
+    }
+
+    private function restartAfterProductionComposerInstall(): int
+    {
+        $command = [PHP_BINARY, base_path('artisan'), 'app:refresh', '--no-composer-install', '--no-autoload'];
+
+        foreach (['no-migrate', 'no-build', 'force-build', 'no-queue-restart', 'no-permissions', 'production', 'no-opcache', 'no-fpm-reload'] as $option) {
+            if ($this->option($option)) {
+                $command[] = '--' . $option;
+            }
+        }
+
+        foreach (['writable-group', 'fpm-service'] as $option) {
+            $value = $this->option($option);
+            if (is_string($value) && $value !== '') {
+                $command[] = '--' . $option . '=' . $value;
+            }
+        }
+
+        $this->components->info('Restarting application refresh after production Composer install');
+
+        return $this->runProcess($command, 900) ? self::SUCCESS : self::FAILURE;
     }
 
     private function dumpAutoload(): void
@@ -217,23 +263,23 @@ class AppRefreshCommand extends Command
         });
     }
 
-    private function reloadPhpFpm(): void
+    private function reloadWebServer(): void
     {
         if (PHP_OS_FAMILY !== 'Linux') {
             return;
         }
-        $service = $this->option('fpm-service') ?: sprintf('php%s.%s-fpm', PHP_MAJOR_VERSION, PHP_MINOR_VERSION);
+        $service = $this->option('fpm-service') ?: 'apache2';
         foreach ([['sudo', '-n', 'systemctl', 'reload', $service], ['systemctl', '--no-ask-password', 'reload', $service]] as $command) {
             $process = new Process($command, base_path());
             $process->setTimeout(30);
             $process->setInput('');
             $process->run();
             if ($process->isSuccessful()) {
-                $this->components->info("Reloaded php-fpm service: {$service}");
+                $this->components->info("Reloaded web server service: {$service}");
                 return;
             }
         }
-        $this->components->warn("Could not reload php-fpm ({$service}) without prompting. Run it manually or pass --no-fpm-reload.");
+        $this->components->warn("Could not reload web server ({$service}) without prompting. Run it manually or pass --no-fpm-reload.");
     }
 
     /** @param array<int, string> $command */

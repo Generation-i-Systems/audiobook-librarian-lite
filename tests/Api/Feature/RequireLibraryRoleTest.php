@@ -36,10 +36,10 @@ class RequireLibraryRoleTest extends TestCase
             ->getJson("http://{$host}/api/v1/user");
     }
 
-    // All library roles are allowed regardless of host
-    public function testLibraryUserCanAccessAnyHost(): void
+    // Approved roles are allowed regardless of host
+    public function testFullUserCanAccessAnyHost(): void
     {
-        [, $headers] = $this->makeUser('library-user');
+        [, $headers] = $this->makeUser('full-user');
         $this->getMe($headers, 'localhost')->assertStatus(200);
         $this->getMe($headers, 'librivox.test')->assertStatus(200);
         $this->getMe($headers, 'hybrid.test')->assertStatus(200);
@@ -55,18 +55,18 @@ class RequireLibraryRoleTest extends TestCase
         }
     }
 
-    public function testLibrivoxUserCanAccessAnyHost(): void
+    public function testFullUserCanAccessLibrivoxHost(): void
     {
-        [, $headers] = $this->makeUser('librivox-user');
+        [, $headers] = $this->makeUser('full-user');
         $this->getMe($headers, 'localhost')->assertStatus(200);
         $this->getMe($headers, 'librivox.test')->assertStatus(200);
         $this->getMe($headers, 'hybrid.test')->assertStatus(200);
     }
 
 
-    public function testHybridUserCanAccessAnyHost(): void
+    public function testFullUserCanAccessHybridHost(): void
     {
-        [, $headers] = $this->makeUser('hybrid-user');
+        [, $headers] = $this->makeUser('full-user');
         $this->getMe($headers, 'localhost')->assertStatus(200);
         $this->getMe($headers, 'librivox.test')->assertStatus(200);
         $this->getMe($headers, 'hybrid.test')->assertStatus(200);
@@ -95,9 +95,9 @@ class RequireLibraryRoleTest extends TestCase
         $this->getMe($headers)->assertStatus(403);
     }
 
-    public function testUserRoleIsBlocked(): void
+    public function testUnknownRoleIsBlocked(): void
     {
-        [, $headers] = $this->makeUser('user');
+        [, $headers] = $this->makeUser('invalid-role');
         $this->getMe($headers)->assertStatus(403);
     }
 
@@ -114,7 +114,7 @@ class RequireLibraryRoleTest extends TestCase
             'library_profiles.profiles.main.source_mode' => 'local',
         ]);
 
-        [, $headers] = $this->makeUser('hybrid-user');
+        [, $headers] = $this->makeUser('full-user');
 
         $this->withHeaders(array_merge($headers, ['X-Library-Profile' => 'librivox']))
             ->getJson('http://localhost/api/v1/user')
@@ -127,7 +127,7 @@ class RequireLibraryRoleTest extends TestCase
 
     public function testXLibraryProfileHeaderWithUnknownProfileFallsBackToHost(): void
     {
-        [, $headers] = $this->makeUser('hybrid-user');
+        [, $headers] = $this->makeUser('full-user');
 
         $this->withHeaders(array_merge($headers, ['X-Library-Profile' => 'nonexistent']))
             ->getJson('http://localhost/api/v1/user')
@@ -138,8 +138,8 @@ class RequireLibraryRoleTest extends TestCase
     {
         config(['library_profiles.profiles.librivox.source_mode' => 'librivox']);
 
-        // library-user always gets local source mode regardless of header
-        [, $headers] = $this->makeUser('library-user');
+        // full-user permits the profile selected by the request header
+        [, $headers] = $this->makeUser('full-user');
         $this->withHeaders(array_merge($headers, ['X-Library-Profile' => 'librivox']))
             ->getJson('http://localhost/api/v1/user')
             ->assertStatus(200);
