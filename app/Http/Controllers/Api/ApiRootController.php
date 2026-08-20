@@ -66,8 +66,8 @@ class ApiRootController extends Controller
             'environment' => config('app.env'),
             'database' => config('database.default'),
             'is_devel_site' => config('database.default') === 'mysql_devel',
-            'documentation' => $baseUrl . '/docs/api', // Assuming this exists or points to something useful
-            'openapi' => route('api.v1.openapi'), // We'll name the existing openapi route
+            'documentation' => route('api.v1.openapi'),
+            'openapi' => route('api.v1.openapi'),
             'otp_available' => MailConfiguration::isMailConfigured(),
             'resources' => $apiRoutes,
         ]);

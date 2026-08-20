@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -164,6 +166,16 @@ class User extends Authenticatable
     public function progress(): HasMany
     {
         return $this->hasMany(BookProgress::class);
+    }
+
+    public function bookmarks(): HasMany
+    {
+        return $this->hasMany(Bookmark::class);
+    }
+
+    public function listeningGoals(): HasMany
+    {
+        return $this->hasMany(ListeningGoal::class);
     }
 
     public function recommendationsSent(): HasMany

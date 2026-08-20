@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Bookmark;
 use App\Models\ClientEvent;
+use App\Models\ListeningEvent;
+use App\Models\ListeningGoal;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +18,11 @@ use Illuminate\Support\Str;
 
 class UserAccountService
 {
+    public function __construct(
+        private readonly ListeningActivityService $listeningActivityService = new ListeningActivityService()
+    ) {
+    }
+
     public function getUserById(mixed $identifier): ?array
     {
         $columns = [
@@ -63,6 +72,49 @@ class UserAccountService
         if ($googleId) {
             $result['google_id'] = $googleId;
         }
+
+        $result['groups'] = $user->groups()->get(['groups.id', 'groups.name'])->toArray();
+        $result['friendships'] = $user->friendships()->with('friend:id,name,username,email')->get()->toArray();
+        $result['sent_friend_invitations'] = $user->sentFriendInvitations()
+            ->with('recipient:id,name,username,email')->get()->toArray();
+        $result['received_friend_invitations'] = $user->receivedFriendInvitations()
+            ->with('sender:id,name,username,email')->get()->toArray();
+        $result['badges'] = $user->badges()->with('badge')->orderByDesc('earned_at')->get()->toArray();
+        $result['book_statuses'] = $user->bookStatuses()->get()->toArray();
+        $result['bookmarks'] = Bookmark::query()->where('user_id', $user->id)->orderByDesc('updated_at')->get()->toArray();
+        $result['listening_goals'] = ListeningGoal::query()->where('user_id', $user->id)->orderByDesc('updated_at')->get()->toArray();
+
+        $events = ListeningEvent::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('timestamp_ms')
+            ->limit(50)
+            ->get();
+        $sessions = $this->listeningActivityService->getSessions($user->id);
+        $allEventCount = ListeningEvent::query()->where('user_id', $user->id)->count();
+
+        $result['listening_statistics'] = [
+            'event_count' => $allEventCount,
+            'session_count' => $sessions->count(),
+            'total_seconds' => (int) $sessions->sum('seconds_listened'),
+            'books_started' => $sessions
+                ->map(static fn (object $session): string => $session->title . "\0" . $session->author)
+                ->unique()
+                ->count(),
+            'active_days' => $sessions->pluck('listening_date')->unique()->count(),
+            'current_streak' => $this->listeningActivityService->getCurrentStreak($user->id),
+            'longest_streak' => $this->listeningActivityService->getLongestStreak($user->id),
+            'last_listened_at' => $events->first() === null
+                ? null
+                : Carbon::createFromTimestampMs((int) $events->first()->timestamp_ms)->toDateTimeString(),
+        ];
+        $result['events'] = $events->map(static fn (ListeningEvent $event): array => [
+            'event_type' => $event->event_type,
+            'title' => $event->title,
+            'author' => $event->author,
+            'position_ms' => $event->position_ms,
+            'occurred_at' => Carbon::createFromTimestampMs((int) $event->timestamp_ms)->toDateTimeString(),
+            'device_id' => $event->device_id,
+        ])->all();
 
         return $result;
     }

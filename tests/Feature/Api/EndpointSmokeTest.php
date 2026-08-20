@@ -10,8 +10,8 @@ use Tests\TestCase;
 
 /**
  * Basic smoke tests verifying lite's actual live API surface responds and
- * isn't 404 — sync/stats/bookmarks/user endpoints, not a book catalog (lite
- * has none).
+ * isn't 404 — event and position sync, statistics, achievements, and user
+ * endpoints, not a book catalog (Lite has none).
  */
 class EndpointSmokeTest extends TestCase
 {
@@ -46,9 +46,14 @@ class EndpointSmokeTest extends TestCase
         $this->assertNotEquals(404, $response->status());
     }
 
-    public function test_bookmarks_endpoint_exists(): void
+    public function test_events_endpoint_exists(): void
     {
-        $response = $this->getJson('/api/v1/sync/bookmarks');
+        $response = $this->postJson('/api/v1/sync/events', [
+            'events' => [],
+            'lastSyncTimestamp' => 0,
+        ], [
+            'X-Device-ID' => 'smoke-device',
+        ]);
 
         $this->assertNotEquals(404, $response->status());
     }
@@ -67,16 +72,16 @@ class EndpointSmokeTest extends TestCase
         $this->assertNotEquals(404, $response->status());
     }
 
-    public function test_listening_goals_endpoint_exists(): void
+    public function test_achievements_endpoint_exists(): void
     {
-        $response = $this->getJson('/api/v1/goals/listening');
+        $response = $this->getJson('/api/v1/badges');
 
         $this->assertNotEquals(404, $response->status());
     }
 
     public function test_unauthenticated_requests_are_rejected(): void
     {
-        $response = $this->withoutMiddleware()->getJson('/api/v1/sync/bookmarks');
+        $response = $this->withoutMiddleware()->getJson('/api/v1/badges');
 
         $this->assertNotEquals(404, $response->status());
     }

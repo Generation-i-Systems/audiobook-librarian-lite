@@ -93,11 +93,11 @@ class AdminUserControllerTest extends TestCase
         $response = $this->postJson('/api/v1/admin/users/' . $target->id . '/verify');
 
         $response->assertStatus(200)
-            ->assertJsonPath('user.role', 'user')
+            ->assertJsonPath('user.role', 'trial-user')
             ->assertJsonPath('message', 'User verified successfully.');
 
         $target->refresh();
-        $this->assertSame('user', $target->role);
+        $this->assertSame('trial-user', $target->role);
         $this->assertNotNull($target->email_verified_at);
 
         Mail::assertSent(WelcomeMail::class, function (WelcomeMail $mail) {

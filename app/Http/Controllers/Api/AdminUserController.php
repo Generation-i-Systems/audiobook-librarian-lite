@@ -72,7 +72,7 @@ class AdminUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255',
             'username' => 'required|string|max:255|alpha_dash',
-            'role' => 'sometimes|string|in:user,admin,unverified',
+            'role' => 'sometimes|string|in:trial-user,full-user,user,library-user,librivox-user,hybrid-user,admin,super-admin,unverified',
             'send_otp_email' => 'sometimes|boolean',
         ]);
 
@@ -182,8 +182,8 @@ class AdminUserController extends Controller
             return response()->json(['message' => 'User is already verified.']);
         }
 
-        $role = $request->input('role', 'user');
-        if (!in_array($role, ['user', 'library-user', 'librivox-user', 'hybrid-user', 'admin', 'super-admin'], true)) {
+        $role = $request->input('role', 'trial-user');
+        if (!in_array($role, ['trial-user', 'full-user', 'user', 'library-user', 'librivox-user', 'hybrid-user', 'admin', 'super-admin'], true)) {
             return response()->json(['message' => 'Invalid role selected.'], 422);
         }
 

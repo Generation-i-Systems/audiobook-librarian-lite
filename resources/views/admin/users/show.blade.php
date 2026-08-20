@@ -61,6 +61,117 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-md-9 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Listening Statistics</h5>
+                </div>
+                <div class="card-body">
+                    @php($statistics = $user['listening_statistics'] ?? [])
+                    <div class="row">
+                        <div class="col-md-4 mb-2"><strong>Synced events:</strong> {{ number_format($statistics['event_count'] ?? 0) }}</div>
+                        <div class="col-md-4 mb-2"><strong>Listening sessions:</strong> {{ number_format($statistics['session_count'] ?? 0) }}</div>
+                        <div class="col-md-4 mb-2"><strong>Listening time:</strong> {{ number_format(($statistics['total_seconds'] ?? 0) / 60, 1) }} min</div>
+                        <div class="col-md-4 mb-2"><strong>Books started:</strong> {{ number_format($statistics['books_started'] ?? 0) }}</div>
+                        <div class="col-md-4 mb-2"><strong>Active days:</strong> {{ number_format($statistics['active_days'] ?? 0) }}</div>
+                        <div class="col-md-4 mb-2"><strong>Current / longest streak:</strong> {{ $statistics['current_streak'] ?? 0 }} / {{ $statistics['longest_streak'] ?? 0 }} days</div>
+                    </div>
+
+                    <p class="mb-0 text-muted">Last event: {{ $statistics['last_listened_at'] ?? 'No synced listening events' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0">Achievements</h5></div>
+                <div class="card-body p-0">
+                    @if (empty($user['badges']))
+                        <p class="p-3 mb-0 text-muted">No achievements have been earned.</p>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead><tr><th>Badge</th><th>Tier</th><th>Points</th><th>Earned</th></tr></thead>
+                                <tbody>
+                                    @foreach ($user['badges'] as $userBadge)
+                                        <tr>
+                                            <td>{{ $userBadge['badge']['name'] ?? 'Deleted badge' }}</td>
+                                            <td>{{ ucfirst($userBadge['badge']['tier'] ?? '') }}</td>
+                                            <td>{{ $userBadge['badge']['points'] ?? 0 }}</td>
+                                            <td>{{ !empty($userBadge['earned_at']) ? \Carbon\Carbon::parse($userBadge['earned_at'])->format('M j, Y') : 'N/A' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0">Recent Synced Events</h5></div>
+                <div class="card-body p-0">
+                    @if (empty($user['events']))
+                        <p class="p-3 mb-0 text-muted">No listening events have been synced.</p>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead><tr><th>When</th><th>Event</th><th>Book</th><th>Position</th></tr></thead>
+                                <tbody>
+                                    @foreach ($user['events'] as $event)
+                                        <tr>
+                                            <td>{{ \Carbon\Carbon::parse($event['occurred_at'])->format('M j, Y g:i A') }}</td>
+                                            <td>{{ str_replace('_', ' ', $event['event_type']) }}</td>
+                                            <td>{{ $event['title'] }}@if (!empty($event['author'])) <small class="text-muted">by {{ $event['author'] }}</small>@endif</td>
+                                            <td>{{ number_format($event['position_ms'] / 1000, 1) }} s</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">User Data</h5></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4"><strong>Groups:</strong> {{ count($user['groups'] ?? []) }}</div>
+                        <div class="col-md-4"><strong>Friends:</strong> {{ count($user['friendships'] ?? []) }}</div>
+                        <div class="col-md-4"><strong>Bookmarks:</strong> {{ count($user['bookmarks'] ?? []) }}</div>
+                        <div class="col-md-4"><strong>Listening goals:</strong> {{ count($user['listening_goals'] ?? []) }}</div>
+                        <div class="col-md-4"><strong>Achievements:</strong> {{ count($user['badges'] ?? []) }}</div>
+                        <div class="col-md-4"><strong>Book statuses:</strong> {{ count($user['book_statuses'] ?? []) }}</div>
+                    </div>
+
+                    @foreach ([
+                        'groups' => 'Groups',
+                        'friendships' => 'Friends',
+                        'sent_friend_invitations' => 'Sent invitations',
+                        'received_friend_invitations' => 'Received invitations',
+                        'bookmarks' => 'Bookmarks',
+                        'listening_goals' => 'Listening goals',
+                        'book_statuses' => 'Book statuses',
+                    ] as $key => $label)
+                        @if (!empty($user[$key]))
+                            <hr>
+                            <h6>{{ $label }}</h6>
+                            <pre class="mb-0 small bg-light border rounded p-2">{{ json_encode($user[$key], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 @endsection

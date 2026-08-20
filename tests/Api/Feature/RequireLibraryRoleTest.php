@@ -45,6 +45,16 @@ class RequireLibraryRoleTest extends TestCase
         $this->getMe($headers, 'hybrid.test')->assertStatus(200);
     }
 
+    public function testTrialAndFullUsersHaveTheSameCurrentAccess(): void
+    {
+        foreach (['trial-user', 'full-user'] as $role) {
+            [, $headers] = $this->makeUser($role);
+            $this->getMe($headers, 'localhost')->assertStatus(200);
+            $this->getMe($headers, 'librivox.test')->assertStatus(200);
+            $this->getMe($headers, 'hybrid.test')->assertStatus(200);
+        }
+    }
+
     public function testLibrivoxUserCanAccessAnyHost(): void
     {
         [, $headers] = $this->makeUser('librivox-user');

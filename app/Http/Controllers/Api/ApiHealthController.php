@@ -39,8 +39,7 @@ class ApiHealthController extends Controller
      * This endpoint validates:
      * - Database connectivity
      * - Data availability across the live sync tables (users, listening
-     *   statistics, bookmarks, devices)
-     * - Storage volume availability and free space
+     *   statistics, positions, events, badges, and devices)
      */
     public function health(): JsonResponse
     {
@@ -56,12 +55,6 @@ class ApiHealthController extends Controller
         // Check 2: Data availability across live tables
         $checks['data_availability'] = $this->healthCheckService->checkDataAvailability();
         if (!$checks['data_availability']['passed']) {
-            $allPassed = false;
-        }
-
-        // Check 3: Storage volume accessibility and free space
-        $checks['storage'] = $this->checkStorageVolumes();
-        if (!$checks['storage']['passed']) {
             $allPassed = false;
         }
 
@@ -85,8 +78,12 @@ class ApiHealthController extends Controller
 
         $tables = [
             'users' => ['id', 'email', 'role'],
+            'bookmarks' => ['id', 'user_id', 'title', 'author'],
             'listening_statistics' => ['id', 'user_id', 'title', 'author'],
-            'bookmarks' => ['id', 'user_id'],
+            'book_positions' => ['user_id', 'title', 'author', 'device_id', 'position_ms'],
+            'listening_events' => ['id', 'user_id', 'title', 'author'],
+            'badges' => ['id', 'key'],
+            'user_badges' => ['id', 'user_id', 'badge_id'],
             'devices' => ['device_id', 'user_id'],
         ];
 
@@ -103,62 +100,5 @@ class ApiHealthController extends Controller
             'validations' => $validations,
             'api_version' => 'v1',
         ], $allPassed ? 200 : 422);
-    }
-
-    /**
-     * Check all configured storage volumes for accessibility and free space
-     */
-    protected function checkStorageVolumes(): array
-    {
-        $paths = $this->getStoragePaths();
-        $volumes = [];
-        $allHealthy = true;
-
-        foreach ($paths as $name => $path) {
-            $exists = is_dir($path);
-            $readable = $exists && is_readable($path);
-
-            $freeBytes = $readable ? disk_free_space($path) : false;
-            $totalBytes = $readable ? disk_total_space($path) : false;
-
-            $freeBytesInt = $freeBytes !== false ? (int) $freeBytes : null;
-            $totalBytesInt = $totalBytes !== false ? (int) $totalBytes : null;
-            $usedPercent = ($freeBytesInt !== null && $totalBytesInt !== null && $totalBytesInt > 0) ? round((($totalBytesInt - $freeBytesInt) / $totalBytesInt) * 100, 1) : null;
-
-            $passed = $exists && $readable && $freeBytes !== false;
-            if (!$passed) {
-                $allHealthy = false;
-            }
-
-            $volumes[$name] = [
-                'passed' => $passed,
-                'path' => $path,
-                'exists' => $exists,
-                'readable' => $readable,
-                'free_bytes' => $freeBytesInt,
-                'total_bytes' => $totalBytesInt,
-                'used_percent' => $usedPercent,
-                'message' => $passed ? 'Volume accessible' : ($exists ? 'Volume not readable' : 'Directory does not exist'),
-            ];
-        }
-
-        return [
-            'passed' => $allHealthy,
-            'message' => $allHealthy ? 'All storage volumes accessible' : 'One or more storage volumes have issues',
-            'volumes' => $volumes,
-        ];
-    }
-
-    /**
-     * Return the named storage paths to monitor
-     */
-    protected function getStoragePaths(): array
-    {
-        $paths = [
-            'books' => (string) config('filesystems.disks.books.root', ''),
-            'trash' => (string) config('filesystems.disks.trash.root', ''),
-        ];
-
-        return array_filter($paths);
     }
 }

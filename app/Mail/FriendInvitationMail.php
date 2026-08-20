@@ -22,6 +22,7 @@ class FriendInvitationMail extends Mailable
     {
         return $this
             ->subject('You have a new friend request')
-            ->view('emails.friends.invitation');
+            ->view('emails.friends.invitation')
+            ->with(['senderName' => $this->senderName]);
     }
 }

@@ -12,7 +12,7 @@ class ApiCapabilitiesController extends Controller
         return response()->json([
             'serverType' => 'ablibrarian-lite',
             'syncApiVersion' => '1',
-            'capabilities' => ['HISTORY_SYNC', 'STATS', 'BOOKMARKS_SYNC'],
+            'capabilities' => ['HISTORY_SYNC', 'POSITION_SYNC', 'STATS', 'ACHIEVEMENTS'],
             'requiresAuth' => true,
             'authMethods' => ['username_password', 'email_otp'],
         ]);

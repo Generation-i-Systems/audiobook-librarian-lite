@@ -66,7 +66,6 @@ class ApiHealthTest extends TestCase
                     ],
                     'total_records',
                 ],
-                'storage',
             ],
             'api_version',
         ]);
@@ -91,6 +90,7 @@ class ApiHealthTest extends TestCase
             'validations' => [
                 'users' => ['passed', 'row_count'],
                 'listening_statistics' => ['passed', 'row_count'],
+                'book_positions' => ['passed', 'row_count'],
                 'bookmarks' => ['passed', 'row_count'],
                 'devices' => ['passed', 'row_count'],
             ],

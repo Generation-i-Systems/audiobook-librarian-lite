@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\Badge;
 use App\Models\Bookmark;
+use App\Models\BookPosition;
 use App\Models\Device;
+use App\Models\ListeningEvent;
 use App\Models\ListeningStatistic;
+use App\Models\UserBadge;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -48,8 +52,12 @@ class HealthCheckService
         try {
             $counts = [
                 'users' => User::count(),
-                'listening_statistics' => ListeningStatistic::count(),
                 'bookmarks' => Bookmark::count(),
+                'listening_statistics' => ListeningStatistic::count(),
+                'book_positions' => BookPosition::count(),
+                'listening_events' => ListeningEvent::count(),
+                'badges' => Badge::count(),
+                'user_badges' => UserBadge::count(),
                 'devices' => Device::count(),
             ];
 

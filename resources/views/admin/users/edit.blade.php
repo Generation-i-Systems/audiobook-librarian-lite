@@ -78,6 +78,8 @@
             <label for="role" class="form-label">Role</label>
             <select name="role" id="role" class="form-control" required>
                 <option value="unverified" {{ old('role', $user['role'] ?? '') == 'unverified' ? 'selected' : '' }}>Unverified</option>
+                <option value="trial-user" {{ old('role', $user['role'] ?? '') == 'trial-user' ? 'selected' : '' }}>Verified Trial Access</option>
+                <option value="full-user" {{ old('role', $user['role'] ?? '') == 'full-user' ? 'selected' : '' }}>Verified Full Access</option>
                 <option value="user" {{ old('role', $user['role'] ?? '') == 'user' ? 'selected' : '' }}>User (Player Only)</option>
                 <option value="library-user" {{ old('role', $user['role'] ?? '') == 'library-user' ? 'selected' : '' }}>Library User (Local Books)</option>
                 <option value="librivox-user" {{ old('role', $user['role'] ?? '') == 'librivox-user' ? 'selected' : '' }}>LibriVox User (LibriVox Books)</option>
@@ -89,19 +91,13 @@
 
         @if(($user['role'] ?? '') === 'unverified')
             <div class="alert alert-warning">
-                <p class="mb-2">This user is not yet verified. Choose their access type:</p>
+                <p class="mb-2">This user is not yet verified. Choose trial or full access. Both have the same permissions today.</p>
                 <div class="d-flex gap-2 flex-wrap">
-                    <button type="button" class="btn btn-outline-secondary btn-sm verify-role-btn" data-role="user">
-                        <i class="fas fa-play"></i> Player Only
+                    <button type="button" class="btn btn-outline-secondary btn-sm verify-role-btn" data-role="trial-user">
+                        <i class="fas fa-hourglass-half"></i> Trial Access
                     </button>
-                    <button type="button" class="btn btn-success btn-sm verify-role-btn" data-role="library-user">
-                        <i class="fas fa-book"></i> Library User
-                    </button>
-                    <button type="button" class="btn btn-info btn-sm verify-role-btn" data-role="librivox-user">
-                        <i class="fas fa-microphone"></i> LibriVox User
-                    </button>
-                    <button type="button" class="btn btn-primary btn-sm verify-role-btn" data-role="hybrid-user">
-                        <i class="fas fa-layer-group"></i> Hybrid User
+                    <button type="button" class="btn btn-success btn-sm verify-role-btn" data-role="full-user">
+                        <i class="fas fa-check"></i> Full Access
                     </button>
                 </div>
             </div>

@@ -12,7 +12,7 @@ class RequireLibraryRole
     /**
      * Roles that may access library API endpoints.
      */
-    private const ALLOWED_ROLES = ['library-user', 'librivox-user', 'hybrid-user', 'admin', 'super-admin'];
+    private const ALLOWED_ROLES = ['trial-user', 'full-user', 'library-user', 'librivox-user', 'hybrid-user', 'admin', 'super-admin'];
 
     /**
      * Roles that have a fixed source mode regardless of which host they access.

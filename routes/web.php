@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\UserController as AdminUserWebController;
+use App\Http\Controllers\Admin\BadgeController as AdminBadgeController;
 use App\Http\Controllers\AccountDeletionCancellationController;
 use App\Http\Controllers\Api\EmailOtpController;
 use App\Http\Controllers\AppConnectController;
@@ -43,6 +44,7 @@ Route::get('/', function () {
 })->name('landing');
 
 Route::middleware(['web', 'auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('badges', [AdminBadgeController::class, 'index'])->name('badges.index');
     Route::resource('users', AdminUserWebController::class);
     Route::post('users/{id}/verify', [AdminUserWebController::class, 'verify'])
         ->name('users.verify');

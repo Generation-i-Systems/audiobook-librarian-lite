@@ -13920,6 +13920,28 @@
         }
       }
     },
+    "/goals/listening/history": {
+      "get": {
+        "tags": [
+          "Goals"
+        ],
+        "summary": "List expired listening goals",
+        "operationId": "listListeningGoalHistory",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expired listening goals"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/goals/listening/{goal}": {
       "put": {
         "tags": [

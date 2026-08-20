@@ -1,111 +1,47 @@
-# API Documentation
+# Lite API
 
-This document provides information about the Audiobook Librarian API and its OpenAPI specification.
+The versioned API is rooted at `/api/v1`. Authenticated clients synchronize listening events,
+positions, bookmarks, tags, goals, friends, statistics, and achievements.
 
-## OpenAPI Specification
+## Authentication and users
 
-The Audiobook Librarian API is documented using the [OpenAPI Specification](https://swagger.io/specification/) (formerly known as Swagger).
+- `POST /register` creates an account pending administrator approval.
+- `POST /login` returns a bearer token after approval.
+- `GET /user` returns the authenticated user.
+- `POST /logout` invalidates the token.
 
-### Specification Files
+Administrators manage approval and roles through the web interface at `/admin/users` or the
+admin-user API endpoints.
 
-- `openapi.yaml`: The complete OpenAPI specification in YAML format
-- `openapi.json`: The OpenAPI specification in JSON format (same content as YAML, different format)
+## Device and event sync
 
-### Public API Documentation URL
+Every sync request includes `X-Device-ID`; position writes also require `X-Device-Name`.
 
-The OpenAPI JSON specification is publicly available at:
+- `POST /sync/events` pushes events and retrieves remote events.
+- `GET|POST /sync/positions` retrieves or writes canonical per-book positions.
+- `GET /sync/positions/show` retrieves all known positions for one title and author.
+- `GET|PUT|DELETE /devices` manages a user's registered devices.
 
-```
-https://books.thelin.org/api-docs/openapi.json
-```
+## Statistics and achievements
 
-This URL can be used with OpenAPI client generators and documentation tools like Swagger UI, Redoc, Postman, etc.
+- `GET /statistics/overview`, `/statistics/daily`, and `/statistics/reading-history` provide
+  event-derived statistics.
+- `GET /reading-stats/daily`, `/reading-stats/user`, and `/reading-stats/streaks` provide compact
+  client statistics.
+- `GET /badges`, `/badges/user`, and `/badges/unnotified` retrieve achievement state;
+  `POST /badges/mark-notified` acknowledges displayed achievements.
 
-## API Structure
+## Bookmarks, tags, goals, and friends
 
-The API includes the following main resource categories:
+- `GET|POST|DELETE /bookmarks` manages individual bookmarks. Device-aware sync is available at
+  `GET|POST|DELETE /sync/bookmarks`.
+- `GET|PUT /books/tags` retrieves or updates tags for a title and author; `GET /tags/popular`
+  lists system tags.
+- `GET|POST /goals/listening`, plus its history, update, delete, and breakdown endpoints, manages
+  listening goals.
+- `/friends` provides friend listing/removal, QR invitations, and email invitation workflows.
 
-- **Series** - Endpoints related to book series management
-- **Books** - Endpoints for book information and management
-- **Book Tags** - Endpoints for per-user tags saved against individual books
-- **Authors** - Endpoints for author information
-- **Recommendations** - Endpoints for book sharing between users
-- **Status** - Endpoints for personal book tracking (Queue, Wishlist, etc.)
-- **Users** - Endpoints for user management
-- **Auth** - Authentication and authorization endpoints
+Administrators can manage groups at `/admin/groups` and users at `/admin/users`. The authenticated
+`GET /user` response includes the user's groups.
 
-### Data Models
-
-#### Series
-
-Important note: Series documents use `seriesName` (not `name`) for the series title field. All code, queries, and data operations must use `seriesName` when referring to the series title.
-
-Example series document:
-
-```json
-{
-  "_id": "507f1f77bcf86cd799439011",
-  "seriesName": "Super Powereds",
-  "description": "College for Supers",
-  "books": [...]
-}
-```
-
-#### Book Tags
-
-Authenticated clients can store a per-user tag list for a book at `/api/v1/books/{book}/tags`.
-The server keeps these tags attached to the requesting user, returns them as `userTags` in book
-payloads, and accepts a `tag` query parameter on book listing and search endpoints to filter by a
-saved tag.
-
-## Using the API
-
-### Authentication
-
-Most API endpoints require authentication using a Bearer token. You can obtain a token by logging in using the authentication endpoints.
-Login supports either `email` + `password` or `username` + `password`.
-
-#### OAuth Authentication
-
-Google OAuth authentication will soon be available through the `/api/v1/auth/google` endpoint. This will allow users to authenticate using their Google accounts.
-
-- Bearer token authentication
-- OAuth2 (Google login endpoint)
-
-For details on authentication, please refer to the OpenAPI specification security schemes section.
-
-### Common Parameters
-
-- Pagination: `page`, `per_page`
-- Filtering: Endpoint-specific query parameters
-- Sorting: `sort_by`, `order`
-
-### Response Format
-
-API responses follow a consistent format:
-
-```json
-{
-  "data": [...],
-  "meta": {
-    "current_page": 1,
-    "last_page": 10,
-    "per_page": 15,
-    "total": 150
-  }
-}
-```
-
-## Generating API Clients
-
-You can generate API clients for various programming languages using the OpenAPI JSON URL and tools like:
-
-- [OpenAPI Generator](https://openapi-generator.tech/)
-- [Swagger Codegen](https://swagger.io/tools/swagger-codegen/)
-- [NSwag](https://github.com/RicoSuter/NSwag)
-
-Example using OpenAPI Generator:
-
-```bash
-openapi-generator generate -i https://books.thelin.org/api-docs/openapi.json -g javascript -o ./client
-```
+The machine-readable OpenAPI document is served at `/api/v1/openapi.json`.
