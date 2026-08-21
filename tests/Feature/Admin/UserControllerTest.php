@@ -113,7 +113,7 @@ class UserControllerTest extends TestCase
         $this->app->instance(DocumentStoreServiceInterface::class, $service);
 
         $this->actingAs($admin)
-            ->get(route('profile.index'))
+            ->get(route('admin.users.show', $admin->id))
             ->assertOk()
             ->assertSee('Current Positions')
             ->assertSee('Current Book')

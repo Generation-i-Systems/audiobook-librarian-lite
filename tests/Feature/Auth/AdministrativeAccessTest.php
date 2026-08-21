@@ -55,6 +55,17 @@ class AdministrativeAccessTest extends TestCase
     {
         Mail::fake();
 
+        // SQLite emulates dropColumn() by recreating the table; dropping a
+        // column that still has a unique index attached must happen in a
+        // separate Schema::table() call first, or the recreate fails trying
+        // to rebuild an index that references a now-missing column.
+        Schema::table('users', function (Blueprint $table): void {
+            $table->dropUnique(['google_id']);
+            $table->dropUnique(['facebook_id']);
+            $table->dropUnique(['apple_id']);
+            $table->dropUnique(['discord_id']);
+        });
+
         Schema::table('users', function (Blueprint $table): void {
             $table->dropColumn(['google_id', 'facebook_id', 'apple_id', 'discord_id']);
         });
