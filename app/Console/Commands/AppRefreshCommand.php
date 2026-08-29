@@ -157,7 +157,7 @@ class AppRefreshCommand extends Command
         if (is_dir($path)) {
             @chmod($path, 02777);
         } elseif (is_file($path)) {
-            @chmod($path, (fileperms($path) & 0777) | 0660);
+            @chmod($path, (fileperms($path) & 0777) | 0666);
         }
     }
 

@@ -48,4 +48,31 @@ class CreateAdminUserCommandTest extends TestCase
             ->expectsOutput('An admin user already exists.')
             ->assertExitCode(0);
     }
+
+    public function test_creates_admin_user_with_custom_email_and_password(): void
+    {
+        $this->mock(DocumentStoreServiceInterface::class, function ($mock) {
+            $mock->shouldReceive('getUserByCredentials')
+                ->with(['role' => 'admin'])
+                ->andReturn(null);
+            $mock->shouldReceive('createUser')
+                ->atMost(1)
+                ->andReturnUsing(function ($data) {
+                    $this->assertSame('Admin', $data['name']);
+                    $this->assertSame('custom@example.com', $data['email']);
+                    $this->assertSame('admin', $data['role']);
+                    $this->assertTrue(Hash::check('myCustomPassword123!', $data['password']));
+                });
+        });
+
+        $this->artisan('app:create-admin-user', [
+            '--email' => 'custom@example.com',
+            '--password' => 'myCustomPassword123!',
+            '--no-backup' => true,
+        ])
+            ->expectsOutput('Admin user created!')
+            ->expectsOutput('Email: custom@example.com')
+            ->expectsOutput('Password: myCustomPassword123!')
+            ->assertExitCode(0);
+    }
 }

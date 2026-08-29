@@ -38,14 +38,14 @@ class FixStoragePermissions extends Command
 
         // Define permission settings
         $permissions = [
-            // General storage directories - 755 (rwxr-xr-x)
-            $storagePath => 0755,
-            $storagePath . '/app' => 0755,
-            $storagePath . '/app/public' => 0755,
-            $storagePath . '/framework' => 0755,
-            $storagePath . '/framework/cache' => 0755,
-            $storagePath . '/framework/sessions' => 0755,
-            $storagePath . '/framework/views' => 0755,
+            // General storage directories - 775 (rwxrwxr-x) for shared web/cli access
+            $storagePath => 0775,
+            $storagePath . '/app' => 0775,
+            $storagePath . '/app/public' => 0775,
+            $storagePath . '/framework' => 0775,
+            $storagePath . '/framework/cache' => 0775,
+            $storagePath . '/framework/sessions' => 0775,
+            $storagePath . '/framework/views' => 0775,
 
             // Logs directory - 777 (rwxrwxrwx) for world-writable access
             $storagePath . '/logs' => 0777,
@@ -85,9 +85,9 @@ class FixStoragePermissions extends Command
         $this->fixLogFilePermissions($storagePath . '/logs', $dryRun, $verbose, $changes, $errors);
 
         // Recursively fix permissions for cache and other subdirectories
-        $this->fixRecursivePermissions($storagePath . '/framework/cache', 0755, 0644, $dryRun, $verbose, $changes, $errors);
-        $this->fixRecursivePermissions($storagePath . '/framework/sessions', 0755, 0666, $dryRun, $verbose, $changes, $errors); // Session files need to be writable
-        $this->fixRecursivePermissions($storagePath . '/framework/views', 0755, 0644, $dryRun, $verbose, $changes, $errors);
+        $this->fixRecursivePermissions($storagePath . '/framework/cache', 0775, 0666, $dryRun, $verbose, $changes, $errors);
+        $this->fixRecursivePermissions($storagePath . '/framework/sessions', 0775, 0666, $dryRun, $verbose, $changes, $errors); // Session files need to be writable
+        $this->fixRecursivePermissions($storagePath . '/framework/views', 0775, 0666, $dryRun, $verbose, $changes, $errors); // Compiled views need to be writable by both web & cli
 
         // Display results
         if (!empty($changes)) {

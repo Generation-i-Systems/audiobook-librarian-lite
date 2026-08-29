@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Contracts\DocumentStoreServiceInterface;
@@ -14,7 +16,10 @@ class CreateAdminUser extends Command
      *
      * @var string
      */
-    protected $signature = 'app:create-admin-user {--no-backup : Skip automatic database backup}';
+    protected $signature = 'app:create-admin-user
+                            {--email= : Specify the email address for the admin user}
+                            {--password= : Specify the password for the admin user}
+                            {--no-backup : Skip automatic database backup}';
 
     /**
      * The console command description.
@@ -25,8 +30,6 @@ class CreateAdminUser extends Command
 
     /**
      * Execute the console command.
-     *
-     * @return int
      */
     protected DocumentStoreServiceInterface $documentStoreService;
 
@@ -41,13 +44,11 @@ class CreateAdminUser extends Command
 
     /**
      * Execute the console command.
-     *
-     * @return int
      */
-    public function handle()
+    public function handle(): int
     {
         // Create a database backup unless --no-backup is specified
-        if (!$this->option('no-backup')) {
+        if (! $this->option('no-backup')) {
             $this->info('Creating a database backup before creating admin user...');
             $this->call('backup:database');
             $this->info('Database backup created.');
@@ -61,16 +62,24 @@ class CreateAdminUser extends Command
 
             return 0;
         }
-        $password = Str::random(12);
+
+        $emailOption = $this->option('email');
+        $email = is_string($emailOption) && trim($emailOption) !== '' ? trim($emailOption) : 'admin@example.com';
+
+        $passwordOption = $this->option('password');
+        $password = is_string($passwordOption) && trim($passwordOption) !== '' ? trim($passwordOption) : Str::random(12);
+
         $this->documentStoreService->createUser([
             'name' => 'Admin',
-            'email' => 'admin@example.com',
+            'email' => $email,
             'password' => Hash::make($password),
             'role' => 'admin',
         ]);
+
         $this->info('Admin user created!');
-        $this->info('Email: admin@example.com');
+        $this->info('Email: ' . $email);
         $this->info('Password: ' . $password);
+
         return 0;
     }
 }
