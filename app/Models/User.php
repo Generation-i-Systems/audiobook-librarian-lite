@@ -142,9 +142,9 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        $role = $this->role ?? 'full-user';
+        $role = $this->role ?? 'user';
 
-        return in_array($role, ['admin', 'super-admin'], true);
+        return $role === 'admin';
     }
 
     public function bookStatuses(): HasMany

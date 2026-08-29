@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd" bootstrap="vendor/autoload.php" colors="true" executionOrder="depends,defects" stopOnFailure="false" failOnWarning="false" failOnRisky="false" beStrictAboutOutputDuringTests="false" processIsolation="false" backupGlobals="false">
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd" bootstrap="vendor/autoload.php" colors="true" executionOrder="depends,defects" stopOnFailure="false" failOnWarning="false" failOnRisky="false" beStrictAboutOutputDuringTests="false" processIsolation="false" backupGlobals="false" cacheResult="false">
   <testsuites>
     <testsuite name="Database Safety First">
       <file>tests/Unit/DatabaseSafetyCheckTest.php</file>
@@ -54,7 +54,7 @@
     <server name="TELESCOPE_ENABLED" value="false"/>
     <!-- Firebase support removed - application now uses MySQL only -->
     <server name="DOCUMENT_STORE_DRIVER" value="sqlite"/>
-    <server name="LOG_CHANNEL" value="testing"/>
+    <server name="LOG_CHANNEL" value="stderr"/>
     <!-- Disable Vite in tests to avoid manifest requirement -->
     <server name="VITE_ENABLED" value="false"/>
     <!-- Force override of .env file -->

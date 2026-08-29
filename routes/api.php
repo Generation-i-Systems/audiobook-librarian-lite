@@ -129,6 +129,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/statistics/timeline/day', [StatisticsController::class, 'getDayTimeline']);
         Route::post('/statistics/report', [StatisticsController::class, 'reportSession']);
 
+        // Listening history is event-backed because Lite has no catalog-backed book-status rows.
+        Route::get('/history', [EventController::class, 'history']);
+
         // Device Management and Sync Routes
         Route::middleware('device.identify')->group(function () {
             Route::get('/devices', [DeviceController::class, 'index']);

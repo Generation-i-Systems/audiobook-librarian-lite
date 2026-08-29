@@ -24,7 +24,7 @@ class AdminUserControllerTest extends TestCase
 
     public function test_send_otp_requires_admin(): void
     {
-        $user = User::factory()->create(['email' => 'target@example.com', 'role' => 'full-user']);
+        $user = User::factory()->create(['email' => 'target@example.com', 'role' => 'user']);
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/v1/admin/users/' . $user->id . '/send-otp');
@@ -138,7 +138,7 @@ class AdminUserControllerTest extends TestCase
         Mail::fake();
         Sanctum::actingAs($this->admin());
 
-        $target = User::factory()->create(['email' => 'already@example.com', 'role' => 'full-user']);
+        $target = User::factory()->create(['email' => 'already@example.com', 'role' => 'user']);
 
         $response = $this->postJson('/api/v1/admin/users/' . $target->id . '/verify');
 
@@ -158,7 +158,7 @@ class AdminUserControllerTest extends TestCase
 
     public function test_verify_requires_admin(): void
     {
-        $user = User::factory()->create(['role' => 'full-user']);
+        $user = User::factory()->create(['role' => 'user']);
         Sanctum::actingAs($user);
 
         $target = User::factory()->create(['role' => 'unverified']);

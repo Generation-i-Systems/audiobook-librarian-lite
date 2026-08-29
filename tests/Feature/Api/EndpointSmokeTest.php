@@ -27,7 +27,7 @@ class EndpointSmokeTest extends TestCase
         $this->user->id = 1;
         $this->user->name = 'Test User';
         $this->user->email = 'test@example.com';
-        $this->user->role = 'full-user';
+        $this->user->role = 'user';
 
         Sanctum::actingAs($this->user);
     }

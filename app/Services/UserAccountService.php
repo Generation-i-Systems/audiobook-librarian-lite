@@ -167,7 +167,7 @@ class UserAccountService
             'username' => $username,
             'email' => $data['email'],
             'password' => $data['password'],
-            'role' => $data['role'] ?? 'full-user',
+            'role' => $data['role'] ?? 'user',
             'email_verified_at' => $data['email_verified_at'] ?? null,
         ];
 
@@ -297,14 +297,14 @@ class UserAccountService
 
     public function getAdminUsers(): array
     {
-        return User::whereIn('role', ['admin', 'super-admin'])->get()->toArray();
+        return User::where('role', 'admin')->get()->toArray();
     }
 
     public function isAdmin(string $userId): bool
     {
         $user = User::find($userId);
 
-        return $user && in_array($user->role, ['admin', 'super-admin'], true);
+        return $user && $user->role === 'admin';
     }
 
     public function updateRememberToken(string $identifier, string $token): void

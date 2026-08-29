@@ -84,24 +84,13 @@ class UserManagementPageTest extends TestCase
             $response = $this->actingAs($admin)->get($url);
             $response->assertOk();
 
-            foreach (['library-user', 'librivox-user', 'hybrid-user', 'LibriVox'] as $absent) {
+            foreach (['library-user', 'full-user', 'super-admin', 'LibriVox'] as $absent) {
                 $response->assertDontSee($absent, false);
             }
 
             $response->assertSee('value="user"', false);
             $response->assertSee('value="admin"', false);
         }
-    }
-
-    public function testEditingAUserMigratedFromAFullServerKeepsItsLegacyRoleSelectable(): void
-    {
-        $admin = $this->admin();
-        $legacy = User::factory()->create(['role' => 'library-user']);
-
-        $this->actingAs($admin)
-            ->get(route('admin.users.edit', $legacy->id))
-            ->assertOk()
-            ->assertSee('legacy, from the full server');
     }
 
     public function testTheUserListRejectsARoleLiteDoesNotRecognise(): void

@@ -32,7 +32,7 @@ class UserControllerTest extends TestCase
             'name' => 'New Guy',
             'username' => 'newguy',
             'email' => 'newguy@example.com',
-            'role' => 'full-user',
+            'role' => UserRoles::USER,
         ]);
 
         $response->assertRedirect(route('admin.users.index'));
@@ -53,7 +53,7 @@ class UserControllerTest extends TestCase
             'name' => 'Password User',
             'username' => 'pwuser',
             'email' => 'pwuser@example.com',
-            'role' => 'full-user',
+            'role' => UserRoles::USER,
             'send_otp_email' => '0',
             'password' => 'secret123',
             'password_confirmation' => 'secret123',
@@ -77,7 +77,7 @@ class UserControllerTest extends TestCase
 
         // Verifying approves an account; it must never escalate it to an
         // administrator. That is done deliberately from the edit page.
-        foreach ([UserRoles::ADMIN, UserRoles::SUPER_ADMIN, 'trial-user', 'full-user'] as $role) {
+        foreach ([UserRoles::ADMIN, 'super-admin', 'trial-user', 'full-user'] as $role) {
             $response->assertDontSee('value="' . $role . '"', false);
         }
     }

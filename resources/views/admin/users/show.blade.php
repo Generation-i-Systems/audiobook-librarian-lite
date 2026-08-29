@@ -39,7 +39,7 @@
             </div>
         </div>
         <div>
-            @if(auth()->user()->role === 'admin' || auth()->user()->role === 'super-admin')
+            @if(auth()->user()->role === 'admin')
                 <a href="{{ route('admin.users.edit', $user['id']) }}" class="btn btn-warning">
                     <i class="fas fa-edit me-1"></i> Edit User
                 </a>

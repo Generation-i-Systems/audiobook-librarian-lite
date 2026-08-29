@@ -81,9 +81,6 @@
                 @foreach (\App\Support\UserRoles::selectable() as $value => $label)
                     <option value="{{ $value }}" {{ $currentRole === $value ? 'selected' : '' }}>{{ $label }}</option>
                 @endforeach
-                @if (in_array($currentRole, \App\Support\UserRoles::legacy(), true))
-                    <option value="{{ $currentRole }}" selected>{{ $currentRole }} (legacy, from the full server)</option>
-                @endif
             </select>
         </div>
 

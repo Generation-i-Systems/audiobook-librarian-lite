@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Support\UserRoles;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -116,7 +117,7 @@ class ApiAuth
                         return response()->json(['error' => 'User not found'], 401);
                     }
 
-                    if ($user->role === 'unverified') {
+                    if (!UserRoles::isVerified($user->role)) {
                         return response()->json([
                             'code' => 'ACCOUNT_PENDING_APPROVAL',
                             'message' => 'Account pending admin approval',
@@ -188,8 +189,8 @@ class ApiAuth
             return response()->json(['error' => 'User not found'], 401);
         }
 
-        // Check if user is approved (not unverified)
-        if ($user->role === 'unverified') {
+        // Lite grants API access only to the two verified roles.
+        if (!UserRoles::isVerified($user->role)) {
             Log::warning('API Auth failed: User account pending approval', [
                 'ip' => $clientIp,
                 'user_agent' => $userAgent,

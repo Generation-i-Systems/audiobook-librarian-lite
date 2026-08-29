@@ -20,10 +20,10 @@ class UserIsAdminAttributeTest extends TestCase
     }
 
     #[Test]
-    public function testIsAdminTrueForSuperAdminRole(): void
+    public function testIsAdminTrueForAdminRoleThroughAccessor(): void
     {
         $user = new User();
-        $user->role = 'super-admin';
+        $user->role = 'admin';
 
         $this->assertTrue($user->is_admin);
     }
@@ -32,7 +32,7 @@ class UserIsAdminAttributeTest extends TestCase
     public function testIsAdminFalseForUserRole(): void
     {
         $user = new User();
-        $user->role = 'full-user';
+        $user->role = 'user';
 
         $this->assertFalse($user->is_admin);
     }

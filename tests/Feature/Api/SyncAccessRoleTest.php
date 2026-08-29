@@ -13,13 +13,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Lite's whole purpose is syncing a player's listening data, so every verified
- * role has to reach the sync surface.
- *
- * The middleware used to enumerate the full server's library roles, which meant
- * an admin verifying someone as a plain player (role `user` — the only role that
- * makes sense on a server with no library) locked them out of every authenticated
- * endpoint with a 403.
+ * Lite's whole purpose is syncing listening data, so both verified roles have
+ * to reach the authenticated surface.
  */
 class SyncAccessRoleTest extends TestCase
 {
@@ -92,7 +87,7 @@ class SyncAccessRoleTest extends TestCase
     }
 
     #[Test]
-    public function a_plain_player_account_can_sync_and_read_back_its_own_events(): void
+    public function a_standard_user_can_sync_and_read_back_its_own_events(): void
     {
         $user = User::factory()->create(['role' => UserRoles::USER]);
         Sanctum::actingAs($user);

@@ -16,12 +16,8 @@ class DocumentStoreServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(DocumentStoreServiceInterface::class, function ($app) {
-            if ($app->environment('testing')) {
-                Log::info('Testing environment detected; binding MySqlService for DocumentStoreServiceInterface');
-            }
-
             $driver = config('documentstore.driver');
-            if ($driver !== 'mysql') {
+            if (!$app->environment('testing') && $driver !== 'mysql') {
                 Log::warning("Document store driver '{$driver}' is no longer supported. Defaulting to MySqlService.");
             }
 

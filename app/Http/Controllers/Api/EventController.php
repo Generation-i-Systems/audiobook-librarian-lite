@@ -240,6 +240,43 @@ class EventController extends Controller
     }
 
     /**
+     * Return the user's event-backed listening history.
+     *
+     * Lite has no catalog-backed book-status table, so this is intentionally keyed by the
+     * title/author identity that Lite stores for every synced event.
+     */
+    public function history(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+        $perPage = $validated['per_page'] ?? 20;
+        $events = ListeningEvent::where('user_id', auth()->id())
+            ->whereNull('migrated_from')
+            ->orderByDesc('timestamp_ms')
+            ->paginate($perPage);
+
+        return response()->json([
+            'history' => $events->getCollection()->map(function (ListeningEvent $event) {
+                return [
+                    'id' => $event->id,
+                    'book_id' => 0,
+                    'timestamp' => $event->timestamp_ms,
+                    'event_type' => $event->event_type,
+                    'position_ms' => $event->position_ms,
+                    'metadata' => [
+                        'title' => $event->title,
+                        'author' => $event->author,
+                    ],
+                    'device_id' => $event->device_id,
+                ];
+            })->values(),
+            'current_page' => $events->currentPage(),
+            'next_page_url' => $events->nextPageUrl(),
+        ]);
+    }
+
+    /**
      * Get events for a specific book.
      */
     public function getBookEvents(Request $request): JsonResponse

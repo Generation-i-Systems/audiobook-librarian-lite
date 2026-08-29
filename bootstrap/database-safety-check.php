@@ -71,8 +71,6 @@ if ($isTestRunner) {
         $basePath . '/bootstrap/cache/config.php',
         $basePath . '/bootstrap/cache/routes-v7.php',
         $basePath . '/bootstrap/cache/routes.php',
-        $basePath . '/bootstrap/cache/packages.php',
-        $basePath . '/bootstrap/cache/services.php',
         $basePath . '/bootstrap/cache/events.php',
     ];
     foreach ($cacheFiles as $cacheFile) {

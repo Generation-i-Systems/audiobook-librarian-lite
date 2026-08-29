@@ -126,7 +126,7 @@ class AdministrativeAccessTest extends TestCase
         $user = User::factory()->create([
             'email' => 'member@example.com',
             'password' => 'secure-password',
-            'role' => 'full-user',
+            'role' => 'user',
         ]);
 
         $response = $this->from(route('admin.login'))->post(route('admin.login.store'), [
@@ -142,7 +142,7 @@ class AdministrativeAccessTest extends TestCase
     public function testAdminUserPageShowsEventSourcedStatisticsAndAchievements(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $member = User::factory()->create(['role' => 'full-user']);
+        $member = User::factory()->create(['role' => 'user']);
         $badge = Badge::query()->create([
             'key' => 'first-session',
             'name' => 'First Session',

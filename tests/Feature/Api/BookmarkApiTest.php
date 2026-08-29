@@ -19,7 +19,7 @@ class BookmarkApiTest extends TestCase
     {
         parent::setUp();
         $this->user = User::factory()->create([
-            'role' => 'full-user',
+            'role' => 'user',
         ]);
     }
 

@@ -1315,17 +1315,11 @@
       },
       "UserRole": {
         "type": "string",
-        "description": "Lite has no book catalog, so the full server's source-mode roles (library-user / librivox-user / hybrid-user / trial-user / full-user) carry no meaning here. They are still accepted so accounts migrated from a full server keep working, but new accounts get `user`. The only access decision lite makes is verified vs. `unverified`.",
+        "description": "Lite has exactly three roles: unverified, user, and admin. Unverified accounts may authenticate but cannot use sync endpoints.",
         "enum": [
           "unverified",
           "user",
-          "admin",
-          "super-admin",
-          "trial-user",
-          "full-user",
-          "library-user",
-          "librivox-user",
-          "hybrid-user"
+          "admin"
         ],
         "example": "user"
       },
@@ -5615,6 +5609,30 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           }
+        }
+      }
+    },
+    "/history": {
+      "get": {
+        "tags": ["History"],
+        "summary": "Get event-backed listening history",
+        "operationId": "getHistory",
+        "security": [{"BearerAuth": []}],
+        "parameters": [{"name": "page", "in": "query", "schema": {"type": "integer", "minimum": 1}}],
+        "responses": {
+          "200": {
+            "description": "Listening events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["history"],
+                  "properties": {"history": {"type": "array", "items": {"type": "object"}}}
+                }
+              }
+            }
+          },
+          "401": {"$ref": "#/components/responses/Unauthorized"}
         }
       }
     },

@@ -18,7 +18,7 @@ class FriendControllerTest extends TestCase
 
     protected function actingAsUser(): array
     {
-        $user = User::factory()->create(['role' => 'full-user']);
+        $user = User::factory()->create(['role' => 'user']);
         $token = $user->createToken('test-token')->plainTextToken;
 
         return [$user, ['Authorization' => 'Bearer ' . $token]];
