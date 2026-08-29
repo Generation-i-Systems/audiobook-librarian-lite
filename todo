@@ -155,3 +155,91 @@ work above and see what's left. Expect most of the current 210 to clear once
 ReadingSession/Message/Badge/Playlist/UserBadge/UserBookStatus exist and the `books`
 table question is resolved. Anything still failing after that is worth a fresh look --
 don't assume it's more of the same.
+
+
+---
+
+## 2026-07-24 (cont. 2) — PHPStan build fully green; books-table string conversion in progress
+
+Direct follow-up to "FIX THE BUILD SO THAT VERIFICATIONS WORK": `vendor/bin/phpstan analyse
+app tests --level=5` now returns **zero errors** (was 1000+, un-completable, at the start of
+today). Confirmed by running the actual `.git/hooks/pre-commit` script directly (not just
+phpstan in isolation) — it now gets all the way past syntax/Pint/PHPStan and into the test
+run stage, which is real progress: those three gates are the ones that were structurally
+broken before today.
+
+### What got fixed to reach that
+
+1. Finished the LibriVox/book-library/AI-import dead-code removal from the previous entry.
+2. Removed the unrouted Skin/Theme subsystem (SkinController, ThemeController,
+   SkinAssetController, BuiltinSkinController, SkinWebController, ThemeWebController, their
+   services, GalleryServiceProvider, Blade views, skin-designer JS/CSS) — same "zero routes,
+   zero callers" pattern as LibriVox, confirmed before removing, per explicit instruction.
+3. Added real model+migration pairs for six previously-referenced-but-nonexistent classes
+   that kept, live features actually need: `Message`, `Badge`/`UserBadge`, `ReadingSession`,
+   `Playlist`, `UserBookStatus`, plus `ExternalRead`/`Review`/`UserRecommendation`/`Genre`
+   found along the way. Ported from the full server's equivalents, adapted: `book_id` is
+   nullable/unconstrained everywhere (no FK to a `books` table, which lite doesn't have and
+   per explicit instruction never will), with `title`/`author` columns as the real identity.
+4. Fixed several live runtime bugs uncovered in the process (not just PHPStan noise):
+   - `getBook()`/`listBooks()` in MySqlService previously crashed on every call (queried a
+     `books` table that doesn't exist) — now safe stubs.
+   - `StatisticsController::getFavoriteGenres()` did a raw SQL join through
+     `books`/`book_genre`/`genres` — crashed on every `/statistics/overview` call. Rewritten
+     to aggregate the new `listening_statistics.genre` column directly (client-supplied at
+     report time, same pattern as the pre-existing `title`/`author` columns).
+   - `listening_statistics` was missing `title`/`author` columns entirely despite the model
+     declaring them fillable — every session report with a title/author (i.e. most of them,
+     since `book_id` was never really populated) was silently broken. Added `genre` alongside
+     in the same migration.
+   - Both `/statistics/report` endpoints validated `book_id` against `exists:books,id` —
+     always failed. Now just `nullable|integer`.
+   - `BadgeService::getGenresExplored()`/`getAuthorsExplored()` queried `book_genre`/
+     `author_book` pivot tables directly — rewritten to use `listening_statistics.genre`/
+     `.author` with the same meaningful-engagement (600s) threshold. `getNarratorsExplored()`
+     returns 0 for now — no narrator column exists yet, no data source to compute it from.
+   - Removed dead `User` model relationships (`favoritedAuthors`, `favoritedSeries`,
+     `bookTags`) referencing classes that don't exist and have no live callers.
+   - ~350 test files removed total across all three passes today (book-library, LibriVox,
+     skin/theme, and this one) — all confirmed to target deleted/nonexistent classes before
+     removal, not deleted speculatively.
+
+### What's NOT done — explicit instruction was "finish converting everything to strings"
+
+This is bigger than today's session could complete. Confirmed remaining scope in
+`app/Services/BadgeService.php` alone (grep for `DB::table('book`):
+
+- Line ~356: `DB::table('bookmarks')` — fine, real table.
+- Line ~394-398: `DB::table('book_user')` (legacy library book ids) and
+  `DB::table('user_book_status')` — the first doesn't exist, needs same treatment.
+- Line ~445-465, ~608-632: multiple `DB::table('books')` calls for badge criteria
+  (`library_size`, book-completion counts, etc.) — all will crash at runtime when hit.
+- Line ~913-935: `DB::table('book_genre')` calls inside `ListeningGoal` progress calculation
+  for `genre_hours` metric goals — needs the same `listening_statistics.genre` treatment as
+  `getFavoriteGenres`/`getGenresExplored` got.
+- Line ~954-974: `DB::table('books')` joined with `DB::table('book_series')` for series-based
+  goal progress — no `series` equivalent exists yet (unlike genre); needs either a `series`
+  column added to `listening_statistics`/`user_book_status` the same way, or the feature
+  dropped, per further instruction.
+
+Also still using `Book::factory()` / real book-table assumptions (found via the pre-commit
+hook's own test run, not yet fixed):
+
+- `tests/Api/EventSyncTest.php`
+- `tests/Api/Feature/ApiSpecValidationTest.php` (also asserts against `/api/v1/books/{id}`
+  returning 200 — that route/controller no longer exists post book-library removal, so this
+  assertion itself needs rethinking, not just the fixture)
+
+Likely more beyond these two — this list is what the hook's own test run surfaced in one
+pass with today's staged changes, not an exhaustive audit. Search for `Book::factory()` and
+`DB::table('book` / `DB::table('books'` across `app/` and `tests/` to find the rest.
+
+### Suggested next step
+
+Same mechanical pattern used successfully today, applied file by file: for each
+`DB::table('books'...)`/`DB::table('book_*'...)` call, replace with a query against
+whichever *_statistics/user_book_status/listening_events row already carries `title`/
+`author`/`genre` directly. For each remaining `Book::factory()` in tests, either drop the
+book_id/use a literal object (as done in `BadgeSyncIntegrationTest.php` today) or rewrite the
+test's premise if it specifically depends on book-library relationship data that no longer
+exists.

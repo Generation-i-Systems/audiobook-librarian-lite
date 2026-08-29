@@ -393,6 +393,41 @@
           }
         }
       },
+      "DayTimelineSegment": {
+        "type": "object",
+        "description": "One continuous stretch of listening, keyed by title and author.",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "start_ms": {
+            "type": "integer"
+          },
+          "end_ms": {
+            "type": "integer"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "start_position_ms": {
+            "type": "integer"
+          },
+          "end_position_ms": {
+            "type": "integer"
+          },
+          "chapter_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "chapter_index": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
       "EarnedBadge": {
         "type": "object",
         "description": "A badge the caller earned during this request.",
@@ -559,7 +594,7 @@
             "type": "string",
             "nullable": true,
             "maxLength": 500,
-            "description": "Client-local path. Stored for the client's benefit only; never used as identity."
+            "description": "Client-local path. Accepted and not stored as a column; clients that need it back carry the same value inside `metadata`, which does round-trip."
           },
           "bookId": {
             "type": "integer",
@@ -791,6 +826,116 @@
           }
         }
       },
+      "ProgressItem": {
+        "type": "object",
+        "description": "One book's progress as the client currently holds it.",
+        "required": [
+          "positionMs",
+          "progressPercentage",
+          "lastUpdated"
+        ],
+        "properties": {
+          "bookId": {
+            "type": "integer",
+            "nullable": true,
+            "deprecated": true,
+            "description": "Accepted from full-server clients and echoed back; never used as identity."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Required in practice — an item without one is skipped."
+          },
+          "author": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "positionMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "progressPercentage": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProgressSyncItem": {
+        "type": "object",
+        "description": "Playback progress for one book. Lite has no book catalog, so `title` is the identity; `bookId` is echoed back untouched for full-server clients and never used to look anything up. An item with no title is skipped rather than failing the batch.",
+        "required": [
+          "positionMs",
+          "progressPercentage",
+          "lastUpdated"
+        ],
+        "properties": {
+          "bookId": {
+            "type": "integer",
+            "nullable": true,
+            "deprecated": true,
+            "description": "Accepted and echoed back so a full-server client can match the update to its own record. Never used as identity."
+          },
+          "title": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "author": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "positionMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "progressPercentage": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProgressUpdate": {
+        "type": "object",
+        "description": "Server-held progress that is newer than what the client sent.",
+        "properties": {
+          "bookId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The client's own id, echoed back."
+          },
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "positionMs": {
+            "type": "integer"
+          },
+          "progressPercentage": {
+            "type": "number"
+          },
+          "source": {
+            "type": "string",
+            "example": "server"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "ReadingDailyStats": {
         "type": "object",
         "properties": {
@@ -947,6 +1092,104 @@
           }
         }
       },
+      "SessionReport": {
+        "type": "object",
+        "required": [
+          "title",
+          "author",
+          "session_start",
+          "session_end",
+          "start_position_ms",
+          "end_position_ms"
+        ],
+        "properties": {
+          "book_id": {
+            "type": "integer",
+            "nullable": true,
+            "deprecated": true,
+            "description": "Accepted from full-server clients and ignored."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "author": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "genre": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "session_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "session_end": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Must be after session_start."
+          },
+          "start_position_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_position_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "playback_speed": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 5.0,
+            "nullable": true
+          },
+          "pauses_count": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          },
+          "actual_duration_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true,
+            "description": "Real listening time; preferred over the wall-clock span."
+          },
+          "events": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "object",
+              "required": [
+                "timestamp",
+                "position_ms"
+              ],
+              "properties": {
+                "timestamp": {
+                  "type": "integer"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Required unless `event_type` is sent."
+                },
+                "event_type": {
+                  "type": "string",
+                  "description": "The client's spelling of `type`."
+                },
+                "position_ms": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "metadata": {
+                  "type": "object",
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      },
       "StatisticsOverview": {
         "type": "object",
         "properties": {
@@ -976,6 +1219,22 @@
           },
           "listening_minutes": {
             "$ref": "#/components/schemas/ListeningMinutesBreakdown"
+          }
+        }
+      },
+      "TimelineBar": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "description": "Period key, formatted per `group_by` (e.g. 2026-08-28, 2026-W35, 2026-08, 2026).",
+            "example": "2026-08-28"
+          },
+          "listening_time_ms": {
+            "type": "integer"
+          },
+          "sessions_count": {
+            "type": "integer"
           }
         }
       },
@@ -4489,7 +4748,7 @@
           "Utility"
         ],
         "summary": "Capability discovery",
-        "description": "Returns what features this server supports. Clients that receive 404 from this endpoint should assume all capabilities.",
+        "description": "Returns what features this server supports. Capability names match the client's BackendCapability vocabulary; POSITION_SYNC and ACHIEVEMENTS are older spellings of HISTORY_SYNC and BADGES and are still sent for older clients. Clients that receive 404 from this endpoint should assume the lite defaults: HISTORY_SYNC, STATS, BOOKMARKS_SYNC, BADGES.",
         "operationId": "getCapabilities",
         "responses": {
           "200": {
@@ -4497,7 +4756,44 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "properties": {
+                    "serverType": {
+                      "type": "string",
+                      "example": "ablibrarian-lite"
+                    },
+                    "syncApiVersion": {
+                      "type": "string",
+                      "example": "1"
+                    },
+                    "capabilities": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "HISTORY_SYNC",
+                        "POSITION_SYNC",
+                        "STATS",
+                        "BOOKMARKS_SYNC",
+                        "BADGES",
+                        "ACHIEVEMENTS"
+                      ]
+                    },
+                    "requiresAuth": {
+                      "type": "boolean"
+                    },
+                    "authMethods": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "username_password",
+                        "email_otp"
+                      ]
+                    }
+                  }
                 }
               }
             }
@@ -5322,6 +5618,268 @@
         }
       }
     },
+    "/statistics/report": {
+      "post": {
+        "tags": [
+          "Statistics"
+        ],
+        "summary": "Report a listening session",
+        "description": "Record one finished listening session. The session is keyed by `title` + `author`; `book_id` is accepted from full-server clients and ignored. An event's type may be sent as either `type` or the client's `event_type`. Earning a badge is evaluated after the session is stored, and any new badges come back in `badges_earned`.",
+        "operationId": "reportListeningSession",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Device-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionReport"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "badges_earned": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EarnedBadge"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed (a session needs a title and author)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/statistics/timeline": {
+      "get": {
+        "tags": [
+          "Statistics"
+        ],
+        "summary": "Listening timeline",
+        "description": "Listening totals bucketed over a date range, optionally narrowed to certain weekdays.",
+        "operationId": "getTimelineStats",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Device-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "year"
+              ],
+              "default": "day"
+            }
+          },
+          {
+            "name": "day_filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "weekdays[]",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 6
+              }
+            }
+          },
+          {
+            "name": "detail_period_type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "year"
+              ]
+            }
+          },
+          {
+            "name": "detail_period",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Timeline buckets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/statistics/timeline/day": {
+      "get": {
+        "tags": [
+          "Statistics"
+        ],
+        "summary": "One day's listening timeline",
+        "description": "The listening segments of a single local day, resolved in the given timezone.",
+        "operationId": "getDayTimeline",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Device-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "timezone",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "America/Denver"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Day segments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/sync/bookmarks": {
       "get": {
         "tags": [
@@ -5908,6 +6466,91 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/sync/progress": {
+      "post": {
+        "tags": [
+          "Sync"
+        ],
+        "summary": "Reconcile playback progress",
+        "description": "Push the client's per-book progress and receive back anything the server holds a newer copy of. Books are keyed by `title` + `author`; an item with no title is skipped rather than failing the batch. `bookId` is accepted from full-server clients and echoed back on any update so they can match it to their own record, but it is never used to look anything up.",
+        "operationId": "syncProgress",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Device-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "clientTimestamp",
+                  "progress"
+                ],
+                "properties": {
+                  "clientTimestamp": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "progress": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ProgressItem"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Progress reconciled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "serverTimestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updates": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProgressUpdate"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }

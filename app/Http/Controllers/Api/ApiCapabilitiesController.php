@@ -12,7 +12,17 @@ class ApiCapabilitiesController extends Controller
         return response()->json([
             'serverType' => 'ablibrarian-lite',
             'syncApiVersion' => '1',
-            'capabilities' => ['HISTORY_SYNC', 'POSITION_SYNC', 'STATS', 'ACHIEVEMENTS'],
+            // Names must match the client's BackendCapability enum. POSITION_SYNC and
+            // ACHIEVEMENTS are the older spellings of HISTORY_SYNC and BADGES, still sent so
+            // clients that only know those keep working.
+            'capabilities' => [
+                'HISTORY_SYNC',
+                'POSITION_SYNC',
+                'STATS',
+                'BOOKMARKS_SYNC',
+                'BADGES',
+                'ACHIEVEMENTS',
+            ],
             'requiresAuth' => true,
             'authMethods' => ['username_password', 'email_otp'],
         ]);

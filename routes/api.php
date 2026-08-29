@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PositionSyncController;
 use App\Http\Controllers\Api\ReadingStatsApiController;
 use App\Http\Controllers\Api\StatisticsController;
+use App\Http\Controllers\Api\SyncController;
 use App\Http\Controllers\DocsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -124,6 +125,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/statistics/overview', [StatisticsController::class, 'getOverview']);
         Route::get('/statistics/daily', [StatisticsController::class, 'getDailyStatsOpenApi']);
         Route::get('/statistics/reading-history', [StatisticsController::class, 'getReadingHistoryStats']);
+        Route::get('/statistics/timeline', [StatisticsController::class, 'getTimelineStats']);
+        Route::get('/statistics/timeline/day', [StatisticsController::class, 'getDayTimeline']);
+        Route::post('/statistics/report', [StatisticsController::class, 'reportSession']);
 
         // Device Management and Sync Routes
         Route::middleware('device.identify')->group(function () {
@@ -137,6 +141,9 @@ Route::prefix('v1')->group(function () {
                 Route::post('/events', [EventController::class, 'sync'])->middleware('idempotency');
                 Route::get('/events/book', [EventController::class, 'getBookEvents']);
                 Route::get('/events/stats', [EventController::class, 'getStats']);
+
+                // Progress Sync Route
+                Route::post('/progress', [SyncController::class, 'progress'])->middleware('idempotency');
 
                 // Position Sync Routes
                 Route::get('/positions', [PositionSyncController::class, 'index']);

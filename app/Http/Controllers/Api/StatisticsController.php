@@ -584,6 +584,10 @@ class StatisticsController extends Controller
     public function reportSession(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            // Lite keys sessions by title/author. `book_id` is accepted from full-server
+            // clients and ignored, and an event's type may arrive as either `type` or the
+            // client's `event_type`.
+            'book_id'              => 'nullable|integer',
             'title'                => 'required|string|max:255',
             'author'               => 'required|string|max:255',
             'genre'                => 'nullable|string|max:255',
@@ -596,10 +600,20 @@ class StatisticsController extends Controller
             'actual_duration_ms'   => 'nullable|integer|min:0', // Now nullable
             'events'               => 'nullable|array',         // Now nullable
             'events.*.timestamp'   => 'required|integer',
-            'events.*.type'        => 'required|string',
+            'events.*.type'        => 'required_without:events.*.event_type|string',
+            'events.*.event_type'  => 'required_without:events.*.type|string',
             'events.*.position_ms' => 'required|integer|min:0',
             'events.*.metadata'    => 'nullable|array',
         ]);
+
+        $validated['events'] = array_map(
+            static function (array $event): array {
+                $event['type'] ??= $event['event_type'] ?? '';
+
+                return $event;
+            },
+            $validated['events'] ?? []
+        );
 
         $userId = Auth::id();
         $deviceId = (string) ($request->header('X-Device-ID', 'unknown'));
