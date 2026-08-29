@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use App\Contracts\DocumentStoreServiceInterface;
+use App\Support\UserRoles;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -44,7 +46,7 @@ class UserController extends Controller
             'username' => 'required|string|max:255',
             'email' => 'required|email',
             'password' => 'nullable|string|min:6|confirmed',
-            'role' => 'required|string|in:unverified,trial-user,full-user,admin,super-admin',
+            'role' => ['required', 'string', Rule::in(UserRoles::all())],
             'send_otp_email' => 'sometimes|boolean',
         ]);
         // Uniqueness check
@@ -121,7 +123,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255',
             'email' => 'required|email',
-            'role' => 'required|string|in:unverified,trial-user,full-user,admin,super-admin',
+            'role' => ['required', 'string', Rule::in(UserRoles::all())],
             'password' => 'nullable|string|min:6|confirmed',
         ]);
 

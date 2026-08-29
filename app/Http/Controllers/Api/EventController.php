@@ -21,6 +21,27 @@ class EventController extends Controller
     }
 
     /**
+     * Title/author identity of a pushed event.
+     *
+     * Lite keys events by title/author, but clients built against the full server send a
+     * bookId-keyed payload that carries the same values under metadata.fallbackTitle /
+     * metadata.fallbackAuthor. Accept either.
+     *
+     * @param array<string, mixed> $eventData
+     */
+    private function bookIdentity(array $eventData, string $topLevelKey, string $metadataKey): string
+    {
+        $value = $eventData[$topLevelKey] ?? null;
+        if (is_string($value) && $value !== '') {
+            return $value;
+        }
+
+        $fallback = $eventData['metadata'][$metadataKey] ?? null;
+
+        return is_string($fallback) ? $fallback : '';
+    }
+
+    /**
      * Sync events (bidirectional).
      *
      * Push local events to backend and pull remote events from other devices.
@@ -41,9 +62,10 @@ class EventController extends Controller
         $validated = $request->validate([
             'events'                     => 'present|array|max:100',
             'events.*.id'                => 'required|string|max:255',
-            'events.*.bookTitle'         => 'required|string|max:255',
-            'events.*.bookAuthor'        => 'required|string|max:255',
+            'events.*.bookTitle'         => 'nullable|string|max:255',
+            'events.*.bookAuthor'        => 'nullable|string|max:255',
             'events.*.bookPath'          => 'nullable|string|max:500',
+            'events.*.bookId'            => 'nullable|integer',
             'events.*.eventType'         => 'required|string|max:50',
             'events.*.timestampMs'       => 'required|integer|min:0',
             'events.*.positionMs'        => 'required|integer|min:0',
@@ -74,12 +96,17 @@ class EventController extends Controller
                 }
 
                 // Lite has no book library — the client-supplied title/author
-                // are used as-is as the record's real identity.
+                // are used as-is as the record's real identity. Clients that send the
+                // full server's bookId-keyed payload carry the same identity in
+                // metadata.fallbackTitle/fallbackAuthor.
+                $title  = $this->bookIdentity($eventData, 'bookTitle', 'fallbackTitle');
+                $author = $this->bookIdentity($eventData, 'bookAuthor', 'fallbackAuthor');
+
                 ListeningEvent::create([
                     'id'                  => $eventData['id'],
                     'user_id'             => $user->id,
-                    'title'               => $eventData['bookTitle'],
-                    'author'              => $eventData['bookAuthor'],
+                    'title'               => $title,
+                    'author'              => $author,
                     'event_type'          => $eventData['eventType'],
                     'timestamp_ms'        => $eventData['timestampMs'],
                     'position_ms'         => $eventData['positionMs'],
@@ -96,8 +123,8 @@ class EventController extends Controller
                 $this->positionMaterializer->materialize([
                     'id'           => $eventData['id'],
                     'user_id'      => $user->id,
-                    'title'        => $eventData['bookTitle'],
-                    'author'       => $eventData['bookAuthor'],
+                    'title'        => $title,
+                    'author'       => $author,
                     'event_type'   => $eventData['eventType'],
                     'timestamp_ms' => $eventData['timestampMs'],
                     'position_ms'  => $eventData['positionMs'],

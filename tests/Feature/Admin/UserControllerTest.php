@@ -8,6 +8,7 @@ use App\Contracts\DocumentStoreServiceInterface;
 use App\Mail\EmailOtpMail;
 use App\Mail\WelcomeMail;
 use App\Models\User;
+use App\Support\UserRoles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Mockery;
@@ -71,11 +72,12 @@ class UserControllerTest extends TestCase
 
         $response->assertOk();
 
-        foreach (['trial-user', 'full-user'] as $role) {
-            $response->assertSee('value="' . $role . '"', false);
-        }
+        // Lite has a single verified role, so approving is one action.
+        $response->assertSee('value="' . UserRoles::USER . '"', false);
 
-        foreach (['admin', 'super-admin'] as $role) {
+        // Verifying approves an account; it must never escalate it to an
+        // administrator. That is done deliberately from the edit page.
+        foreach ([UserRoles::ADMIN, UserRoles::SUPER_ADMIN, 'trial-user', 'full-user'] as $role) {
             $response->assertDontSee('value="' . $role . '"', false);
         }
     }

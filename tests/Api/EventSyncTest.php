@@ -61,6 +61,52 @@ class EventSyncTest extends TestCase
         ]);
     }
 
+    public function testSyncAcceptsBookIdKeyedPayloadFromFullServerClients(): void
+    {
+        $user = User::factory()->create(['role' => 'library-user']);
+        $this->actingAs($user, 'api');
+
+        $payload = [
+            'events' => [
+                [
+                    'id' => 'test-event-legacy-1',
+                    'bookId' => 29,
+                    'bookPath' => 'Andy Weir/Project Hail Mary',
+                    'bookTitle' => null,
+                    'bookAuthor' => null,
+                    'eventType' => 'SESSION_END',
+                    'timestampMs' => 1707945600000,
+                    'positionMs' => 1234567,
+                    'metadata' => [
+                        'fallbackTitle' => self::BOOK_TITLE,
+                        'fallbackAuthor' => self::BOOK_AUTHOR,
+                    ],
+                    'deviceId' => 'test-device',
+                    'timezone' => 'UTC',
+                    'createdAt' => 1707945600000,
+                ],
+            ],
+            'lastSyncTimestamp' => 0,
+        ];
+
+        $response = $this->postJson('/api/v1/sync/events', $payload, [
+            'X-Device-ID' => 'test-device',
+            'X-Acting-As-Test' => 'true',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success'  => true,
+            'received' => 1,
+        ]);
+
+        $this->assertDatabaseHas('listening_events', [
+            'id'     => 'test-event-legacy-1',
+            'title'  => self::BOOK_TITLE,
+            'author' => self::BOOK_AUTHOR,
+        ]);
+    }
+
     public function testSyncDeduplicatesEvents(): void
     {
         $user = User::factory()->create(['role' => 'full-user']);

@@ -7,6 +7,7 @@ namespace Tests\Feature\Api;
 use App\Mail\EmailOtpMail;
 use App\Mail\WelcomeMail;
 use App\Models\User;
+use App\Support\UserRoles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\Sanctum;
@@ -92,12 +93,14 @@ class AdminUserControllerTest extends TestCase
 
         $response = $this->postJson('/api/v1/admin/users/' . $target->id . '/verify');
 
+        // Lite has no trial/full library tiers; the default role is the plain
+        // player role, which can reach the whole sync surface.
         $response->assertStatus(200)
-            ->assertJsonPath('user.role', 'trial-user')
+            ->assertJsonPath('user.role', UserRoles::USER)
             ->assertJsonPath('message', 'User verified successfully.');
 
         $target->refresh();
-        $this->assertSame('trial-user', $target->role);
+        $this->assertSame(UserRoles::USER, $target->role);
         $this->assertNotNull($target->email_verified_at);
 
         Mail::assertSent(WelcomeMail::class, function (WelcomeMail $mail) {

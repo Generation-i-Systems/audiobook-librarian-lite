@@ -20,11 +20,9 @@
         <div class="mb-3">
             <label for="role" class="form-label">Role</label>
             <select name="role" id="role" class="form-control" required>
-                <option value="unverified" {{ old('role') == 'unverified' ? 'selected' : '' }}>Unverified</option>
-                <option value="trial-user" {{ old('role') == 'trial-user' ? 'selected' : '' }}>Verified Trial Access</option>
-                <option value="full-user" {{ old('role') == 'full-user' ? 'selected' : '' }}>Verified Full Access</option>
-                <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
-                <option value="super-admin" {{ old('role') == 'super-admin' ? 'selected' : '' }}>Super Admin</option>
+                @foreach (\App\Support\UserRoles::selectable() as $value => $label)
+                    <option value="{{ $value }}" {{ old('role', \App\Support\UserRoles::USER) === $value ? 'selected' : '' }}>{{ $label }}</option>
+                @endforeach
             </select>
         </div>
         <div class="mb-3">

@@ -12,6 +12,27 @@
       <directory suffix="Test.php">./tests/Feature</directory>
       <exclude>./tests/Feature/Api/BaseApiTest.php</exclude>
     </testsuite>
+    <!-- The composer test:api / test:web / ... shortcuts target these directories
+         individually; they belong here too so `composer test` and the pre-commit
+         hook actually run them. tests/Browser is Dusk and needs a real browser. -->
+    <testsuite name="Api">
+      <directory suffix="Test.php">./tests/Api</directory>
+    </testsuite>
+    <testsuite name="Web">
+      <directory suffix="Test.php">./tests/Web</directory>
+    </testsuite>
+    <testsuite name="Cli">
+      <directory suffix="Test.php">./tests/Cli</directory>
+    </testsuite>
+    <testsuite name="Core">
+      <directory suffix="Test.php">./tests/Core</directory>
+    </testsuite>
+    <testsuite name="Import">
+      <directory suffix="Test.php">./tests/Import</directory>
+    </testsuite>
+    <testsuite name="Scripts">
+      <directory suffix="Test.php">./tests/Scripts</directory>
+    </testsuite>
   </testsuites>
   <groups>
     <exclude>

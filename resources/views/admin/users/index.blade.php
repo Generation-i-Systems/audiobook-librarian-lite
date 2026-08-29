@@ -69,7 +69,7 @@
                                             <span class="badge bg-success">Verified</span>
                                         @endif
                                     </td>
-                                    <td>{{ ucfirst($user['role'] ?? 'full-user') }}</td>
+                                    <td>{{ \App\Support\UserRoles::selectable()[$user['role'] ?? ''] ?? ($user['role'] ?? 'user') }}</td>
                                     <td>
                                         <div class="btn-group" role="group">
                                             @if(($user['role'] ?? '') === 'unverified')
@@ -100,7 +100,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center">No users found.</td>
+                                    <td colspan="7" class="text-center">No users found.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -118,22 +118,18 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <p>What type of access should <strong id="verifyUserName"></strong> have?</p>
+                        <p>Approve <strong id="verifyUserName"></strong>?</p>
+                        <p class="text-muted small mb-0">They will be able to sync their own listening
+                        history from any device. Verifying never grants administrator rights &mdash;
+                        assign those from the user's edit page.</p>
                     </div>
                     <div class="modal-footer flex-wrap gap-2">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <form id="verifyTrialForm" method="POST" class="d-inline">
+                        <form id="verifyUserForm" method="POST" class="d-inline">
                             @csrf
-                            <input type="hidden" name="role" value="trial-user">
-                            <button type="submit" class="btn btn-outline-secondary">
-                                <i class="fas fa-hourglass-half"></i> Trial Access
-                            </button>
-                        </form>
-                        <form id="verifyFullForm" method="POST" class="d-inline">
-                            @csrf
-                            <input type="hidden" name="role" value="full-user">
+                            <input type="hidden" name="role" value="{{ \App\Support\UserRoles::USER }}">
                             <button type="submit" class="btn btn-success">
-                                <i class="fas fa-check"></i> Full Access
+                                <i class="fas fa-check"></i> Verify
                             </button>
                         </form>
                     </div>
@@ -150,7 +146,7 @@
 
             document.getElementById('verifyUserName').textContent = userName;
 
-            ['verifyTrialForm', 'verifyFullForm'].forEach(function (id) {
+            ['verifyUserForm'].forEach(function(id) {
                 document.getElementById(id).setAttribute('action', baseUrl);
             });
         });

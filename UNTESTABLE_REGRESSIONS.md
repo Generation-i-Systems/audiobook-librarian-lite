@@ -114,6 +114,12 @@ rendering or real user interactions.
   wiring on page load.
 - **Inline cover preview during import** — the cover candidate list with inline `<img>` tags
   rendered in the terminal; verifying display requires a human.
+- **Admin "Verify User" modal** (`resources/views/admin/users/index.blade.php`) — the inline
+  script points each form's `action` at `/admin/users/{id}/verify` when the Bootstrap modal
+  opens. Feature tests can POST to the verify route directly and assert the resulting role,
+  but nothing proves the modal opens, that `data-user-id` reaches the script, or that the
+  form action is actually rewritten before submit. A broken Bootstrap bundle or a renamed
+  form id fails silently — the button posts to the wrong URL, or nowhere.
 
 ---
 
@@ -163,7 +169,24 @@ feature tests without running a real queue worker.
 
 ---
 
-## 11. Device / Client Specifics
+## 11. API Specification Accuracy
+
+`docs/openapi.json` is the source of truth for the API, and
+`tests/Feature/Api/OpenApiRouteCoverageTest.php` now pins it to the registered routes in both
+directions, checks that every `$ref` resolves, and asserts no endpoint requires a numeric
+book id. What it **cannot** check:
+
+- **Whether a documented request/response schema matches what a controller really returns.**
+  The paths and methods are verified; the field names, types and nullability inside each
+  schema are hand-written. A controller that starts returning a renamed field will not fail
+  any test.
+- **Whether generated client SDKs still compile** against the spec after a change.
+- **Whether the spec is valid OpenAPI 3.0.3** beyond internal `$ref` resolution — no schema
+  validator runs in CI.
+
+---
+
+## 12. Device / Client Specifics
 
 - **`DeviceController`** — device fingerprinting via request headers varies by real
   Android/iOS hardware; cannot be reliably simulated.
@@ -172,7 +195,7 @@ feature tests without running a real queue worker.
 
 ---
 
-## 12. Deployment / System Configuration
+## 13. Deployment / System Configuration
 
 - **`app:refresh`** (`AppRefreshCommand`) — runs deploy-time Composer, migrations, frontend builds,
   queue restarts, permission repairs, OPcache, and PHP-FPM actions. Tests cover the command wiring

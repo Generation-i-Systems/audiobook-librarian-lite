@@ -76,24 +76,25 @@
         </div>
         <div class="mb-3">
             <label for="role" class="form-label">Role</label>
+            @php($currentRole = old('role', $user['role'] ?? \App\Support\UserRoles::USER))
             <select name="role" id="role" class="form-control" required>
-                <option value="unverified" {{ old('role', $user['role'] ?? '') == 'unverified' ? 'selected' : '' }}>Unverified</option>
-                <option value="trial-user" {{ old('role', $user['role'] ?? '') == 'trial-user' ? 'selected' : '' }}>Verified Trial Access</option>
-                <option value="full-user" {{ old('role', $user['role'] ?? '') == 'full-user' ? 'selected' : '' }}>Verified Full Access</option>
-                <option value="admin" {{ old('role', $user['role'] ?? '') == 'admin' ? 'selected' : '' }}>Admin</option>
-                <option value="super-admin" {{ old('role', $user['role'] ?? '') == 'super-admin' ? 'selected' : '' }}>Super Admin</option>
+                @foreach (\App\Support\UserRoles::selectable() as $value => $label)
+                    <option value="{{ $value }}" {{ $currentRole === $value ? 'selected' : '' }}>{{ $label }}</option>
+                @endforeach
+                @if (in_array($currentRole, \App\Support\UserRoles::legacy(), true))
+                    <option value="{{ $currentRole }}" selected>{{ $currentRole }} (legacy, from the full server)</option>
+                @endif
             </select>
         </div>
 
         @if(($user['role'] ?? '') === 'unverified')
             <div class="alert alert-warning">
-                <p class="mb-2">This user is not yet verified. Choose trial or full access. Both have the same permissions today.</p>
+                <p class="mb-2">This user is not yet verified and cannot sync until you approve them.
+                Approving lets them sync their own listening history; to make them an
+                administrator, save the role above instead.</p>
                 <div class="d-flex gap-2 flex-wrap">
-                    <button type="button" class="btn btn-outline-secondary btn-sm verify-role-btn" data-role="trial-user">
-                        <i class="fas fa-hourglass-half"></i> Trial Access
-                    </button>
-                    <button type="button" class="btn btn-success btn-sm verify-role-btn" data-role="full-user">
-                        <i class="fas fa-check"></i> Full Access
+                    <button type="button" class="btn btn-success btn-sm verify-role-btn" data-role="{{ \App\Support\UserRoles::USER }}">
+                        <i class="fas fa-check"></i> Verify
                     </button>
                 </div>
             </div>
@@ -128,7 +129,7 @@
     @if(($user['role'] ?? '') === 'unverified')
         <form id="verify-user-form" action="{{ route('admin.users.verify', $user['id']) }}" method="POST" class="d-none">
             @csrf
-            <input type="hidden" name="role" id="verify-role-input" value="trial-user">
+            <input type="hidden" name="role" id="verify-role-input" value="user">
         </form>
         <script>
             document.querySelectorAll('.verify-role-btn').forEach(function(btn) {

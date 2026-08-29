@@ -10,6 +10,7 @@ use App\Mail\EmailOtpMail;
 use App\Mail\WelcomeMail;
 use App\Models\EmailOtp;
 use App\Support\AppConnectLinks;
+use App\Support\UserRoles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class AdminUserController extends Controller
 {
@@ -72,7 +74,7 @@ class AdminUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255',
             'username' => 'required|string|max:255|alpha_dash',
-            'role' => 'sometimes|string|in:trial-user,full-user,admin,super-admin,unverified',
+            'role' => ['sometimes', 'string', Rule::in(UserRoles::all())],
             'send_otp_email' => 'sometimes|boolean',
         ]);
 
@@ -96,7 +98,7 @@ class AdminUserController extends Controller
             'email' => $email,
             'username' => $username,
             'password' => Hash::make(Str::random(32)),
-            'role' => $request->input('role', 'full-user'),
+            'role' => $request->input('role', UserRoles::USER),
             'must_change_password' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -182,8 +184,8 @@ class AdminUserController extends Controller
             return response()->json(['message' => 'User is already verified.']);
         }
 
-        $role = $request->input('role', 'trial-user');
-        if (!in_array($role, ['trial-user', 'full-user', 'admin', 'super-admin'], true)) {
+        $role = $request->input('role', UserRoles::USER);
+        if (!in_array($role, UserRoles::assignableOnVerify(), true)) {
             return response()->json(['message' => 'Invalid role selected.'], 422);
         }
 
