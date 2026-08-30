@@ -44,7 +44,9 @@ Route::get('/', function () {
 })->name('landing');
 
 Route::middleware(['web', 'auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('badges', [AdminBadgeController::class, 'index'])->name('badges.index');
+    Route::resource('badges', AdminBadgeController::class)->except(['show']);
+    Route::post('badges/{badge}/activate', [AdminBadgeController::class, 'activate'])->name('badges.activate');
+    Route::delete('badges/{badge}/force', [AdminBadgeController::class, 'forceDestroy'])->name('badges.forceDestroy');
     Route::resource('users', AdminUserWebController::class);
     Route::post('users/{id}/verify', [AdminUserWebController::class, 'verify'])
         ->name('users.verify');

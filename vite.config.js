@@ -9,6 +9,7 @@ export default defineConfig({
                 "resources/sass/app.scss",
                 "resources/js/app.js",
                 "resources/js/global-ajax-auth.js",
+                "resources/js/admin/badges/rule-builder.js",
             ],
             publicDirectory: "public",
             refresh: true,

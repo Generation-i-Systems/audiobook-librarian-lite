@@ -81,6 +81,12 @@ These features require real directory trees and file contents on disk.
   they cannot verify that the actual production mounts (e.g. `/media/audiobooks/books`) are
   mounted, readable, or have sufficient free space.
 - **`BackupDatabase` command** — invokes `mysqldump`, `pg_dump`, `sqlite3`, and `gzip` against the real database and filesystem. Tests can verify command construction and temporary SQLite snapshots, but cannot prove production tool availability, permissions, retention cleanup, or backup restorability.
+- **Admin badge image upload** (`Admin\BadgeController::storeUploadedImage()`) — writes to
+  `storage/app/public/badges` on the `public` disk. Tests use `Storage::fake('public')`, which
+  proves the controller logic but not that the real `public/storage` symlink exists, is
+  writable by the web server user, or that uploaded files are actually served at the resulting
+  `image_url`/`icon_path` in production. A missing/broken symlink or permission mismatch on the
+  real deployment silently produces badges with broken image links.
 
 ---
 
