@@ -113,11 +113,27 @@ class AdminUserControllerTest extends TestCase
         Mail::fake();
         Sanctum::actingAs($this->admin());
 
+        $target = User::factory()->create(['email' => 'pendinguser@example.com', 'role' => 'unverified']);
+
+        $response = $this->postJson('/api/v1/admin/users/' . $target->id . '/verify', ['role' => UserRoles::USER]);
+
+        $response->assertStatus(200)->assertJsonPath('user.role', UserRoles::USER);
+    }
+
+    public function test_verify_cannot_assign_admin_role(): void
+    {
+        Mail::fake();
+        Sanctum::actingAs($this->admin());
+
         $target = User::factory()->create(['email' => 'pendingadmin@example.com', 'role' => 'unverified']);
 
-        $response = $this->postJson('/api/v1/admin/users/' . $target->id . '/verify', ['role' => 'admin']);
+        $response = $this->postJson('/api/v1/admin/users/' . $target->id . '/verify', ['role' => UserRoles::ADMIN]);
 
-        $response->assertStatus(200)->assertJsonPath('user.role', 'admin');
+        // Admin promotion is deliberately not a verify-side capability: the
+        // verify action only transitions an account to the plain player role;
+        // admin is assigned later via the user edit form.
+        $response->assertStatus(422);
+        Mail::assertNothingSent();
     }
 
     public function test_verify_rejects_invalid_role(): void
