@@ -183,4 +183,45 @@ class AdminUserControllerTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_login_qr_returns_redeemable_magic_url_with_username_and_code(): void
+    {
+        Sanctum::actingAs($this->admin());
+        $target = User::factory()->create(['email' => 'qr@example.com', 'username' => 'qruser']);
+
+        $response = $this->postJson('/api/v1/admin/users/' . $target->id . '/login-qr');
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'url',
+            'server_name',
+            'api_url',
+            'username',
+            'email',
+            'code',
+            'token',
+            'expires_in_seconds',
+        ]);
+        $response->assertJsonPath('username', 'qruser');
+
+        $path = (string) parse_url($response->json('url'), PHP_URL_PATH);
+        $this->assertSame('/auth/magic/' . $response->json('token'), $path);
+
+        $query = [];
+        parse_str((string) parse_url($response->json('url'), PHP_URL_QUERY), $query);
+        $this->assertSame('qruser', $query['username'] ?? null);
+        $this->assertSame($response->json('code'), $query['otp'] ?? null);
+
+        $verify = $this->postJson('/api/v1/auth/otp/verify', ['token' => $response->json('token')]);
+        $verify->assertStatus(200);
+        $verify->assertJsonPath('username', 'qruser');
+    }
+
+    public function test_login_qr_requires_admin(): void
+    {
+        $user = User::factory()->create(['email' => 'plain@example.com', 'role' => 'user']);
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/admin/users/' . $user->id . '/login-qr')->assertStatus(403);
+    }
 }

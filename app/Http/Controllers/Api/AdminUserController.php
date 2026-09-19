@@ -208,6 +208,49 @@ class AdminUserController extends Controller
     }
 
     /**
+     * POST /api/admin/users/{id}/login-qr
+     *
+     * Mint a login OTP for an existing user without emailing it, so the
+     * admin can display it as a scannable QR code instead. The QR payload is
+     * the magic-link URL (browser/regular-scanner friendly) and also carries
+     * the username and the 6-digit one-time code as query parameters, so the
+     * Librarian app's connect screen can parse and redeem the scan itself.
+     */
+    public function generateLoginQr(Request $request, string $id): JsonResponse
+    {
+        $user = $this->documentStoreService->getUserById($id);
+        if ($user === null) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+
+        $email = (string) ($user['email'] ?? '');
+        if (!$email) {
+            return response()->json(['message' => 'User has no email address.'], 422);
+        }
+
+        $otp = $this->createLoginOtp($email);
+        $username = (string) ($user['username'] ?? '');
+
+        $params = ['otp' => $otp['code']];
+        if ($username !== '') {
+            $params['username'] = $username;
+        }
+
+        $url = url('/auth/magic/' . $otp['token']) . '?' . http_build_query($params);
+
+        return response()->json([
+            'url' => $url,
+            'server_name' => (string) config('app.name'),
+            'api_url' => AppConnectLinks::apiBaseUrl($request),
+            'username' => $username,
+            'email' => $email,
+            'code' => $otp['code'],
+            'token' => $otp['token'],
+            'expires_in_seconds' => EmailOtp::TTL_MINUTES * 60,
+        ]);
+    }
+
+    /**
      * Create and persist a login OTP record for the given email, returning
      * the plaintext code and magic token before they're hashed into storage.
      *
