@@ -69,6 +69,7 @@
 
 ### Added
 
+- Admin "login QR" endpoint backported from the full server (`POST /api/v1/admin/users/{id}/login-qr`): mints a login OTP without emailing it and returns the magic-link URL with the username and 6-digit one-time code embedded as query parameters, plus `server_name`/`api_url`/`username`/`email`/`code`/`token` JSON fields, so the Librarian app can hand someone an account as a scannable QR that its connect screen redeems via `/auth/otp/verify` with no password or email step.
 - Added `--collection`, `--genre`, and `--pattern` options to `book:import` CLI command
     - `--collection`: Specify a collection name to put all imported items into
     - `--genre`: Specify a default genre for all imported items

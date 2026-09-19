@@ -198,6 +198,16 @@ book id. What it **cannot** check:
   Android/iOS hardware; cannot be reliably simulated.
 - **Audio playback progress sync** — position tracking is driven by the mobile client;
   server-side tests only verify storage, not end-to-end accuracy.
+- **Admin login QR (`POST /api/v1/admin/users/{id}/login-qr`)** — backported from the full
+  server: mints a login OTP and returns the magic-link URL with the username and plaintext
+  6-digit code embedded as query parameters, so the Librarian app's connect screen can redeem
+  the scan via `/auth/otp/verify` with no password or email step. Feature tests cover the mint
+  and the token redemption round trip, but whether a real phone camera can scan and complete
+  the handoff (QR density with long self-hosted URLs, the browser → magic landing →
+  `ablibrarian://` redirect) can only be proven on real hardware. Lite has no admin-web QR
+  modal; QR rendering is done client-side in the Librarian app's admin user screen. The QR is
+  a short-lived bearer credential — anyone who photographs it before first use can take over
+  the account.
 
 ---
 
